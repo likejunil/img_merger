@@ -1,6 +1,10 @@
+import fcntl
 import logging
+import sys
 from signal import signal, SIGTERM, SIGINT
 from uuid import uuid4
+
+from conf.conf import config as conf
 
 
 def cache_func(func):
@@ -52,3 +56,45 @@ def set_signal(signo):
         signal(SIGINT, signal_handler)
     else:
         signal(signo, signal_handler)
+
+
+def lock_run(proc_name=""):
+    pid_file = f'.lock_{proc_name}.pid'
+    import os
+    lock_file = os.path.join(conf.pid_path, pid_file)
+
+    try:
+        # 파일을 읽기 전용 모드로 열기
+        lock_fd = open(lock_file, 'r')
+    except IOError:
+        # 파일이 존재하지 않는다면, 쓰기 모드로 열기
+        lock_fd = open(lock_file, 'w')
+
+    try:
+        # 파일 락 설정
+        fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except IOError:
+        # ---------------------------------------------------------
+        # 파일 락을 얻을 수 없다면 이미 다른 프로세스가 실행 중..
+        # ---------------------------------------------------------
+        msg = f'\n' \
+              f'  **************************************\n' \
+              f'      이미 프로세스가 실행 중입니다.\n' \
+              f'  **************************************\n'
+        logging.error(msg)
+        if not sys.stdout.closed:
+            print(msg)
+        # sys.exit(-1)
+        return
+    except Exception as e:
+        logging.error(e)
+        # sys.exit(-2)
+        return
+
+    def f():
+        # 파일 락 해제
+        fcntl.flock(lock_fd, fcntl.LOCK_UN)
+        # 파일 닫기
+        lock_fd.close()
+
+    return f

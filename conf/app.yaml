@@ -1,5 +1,7 @@
 receiver:
   path: "data/in_files"
-  ext: [ "jpg", "jpeg", "png", "pdf", "esp" ]
+  ext: [ "jpg", "jpeg", "png", "eps" ]
 
 sender:
+  path: "data/out_files"
+  ext: "pdf"

@@ -21,6 +21,7 @@ def ready_conf():
     conf_dict[_.src_path] = os.path.join(root_path, 'src')
     conf_dict[_.log_path] = os.path.join(root_path, 'log')
     conf_dict[_.data_path] = os.path.join(root_path, 'data')
+    conf_dict[_.pid_path] = os.path.join(root_path, 'pid')
     conf_dict[_.yaml_file] = os.getenv(_.yaml_file.upper())
 
     # -----------------------
@@ -35,6 +36,8 @@ def ready_conf():
 
     conf_dict[_.recv_ext] = yml_conf[_.receiver][_.ext]
     conf_dict[_.recv_path] = yml_conf[_.receiver][_.path]
+    conf_dict[_.sender_ext] = yml_conf[_.sender][_.ext]
+    conf_dict[_.sender_path] = yml_conf[_.sender][_.path]
 
     # -----------------------
     # namedtuple 로 변환하여 반환
