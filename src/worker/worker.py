@@ -122,15 +122,16 @@ def convert(filename):
 
 
 def convert_proc():
-    r1 = receiver_proc(convert, '1')
-    r2 = receiver_proc(convert, '2')
+    n = 2
+    receiver_list = [receiver_proc(convert, str(i + 1)) for i in range(n)]
 
     _, _, ok = ready_cont()
     while ok():
-        sender_proc((r1.get_ret(), r2.get_ret()))
+        ret_list = list(map(lambda m: m.get_ret(), receiver_list))
+        sender_proc(ret_list)
 
-    r1.stop_proc()
-    r2.stop_proc()
+    for receiver in receiver_list:
+        receiver.stop_proc()
     logging.info(f'receiver 인스턴스 중지 완료')
 
 
