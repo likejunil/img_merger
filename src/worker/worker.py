@@ -107,7 +107,7 @@ def conv_eps(filename):
     # Ghostscript("-sDEVICE=pdfwrite", "-o", pdf_file, filename)
 
     def convert_eps_to_pdf(eps, pdf):
-        command = ['gs', '-dNOPAUSE', '-sDEVICE=pdfwrite', '-o', pdf, eps]
+        command = ['gs', '-dEPSCrop', '-dNOPAUSE', '-sDEVICE=pdfwrite', '-o', pdf, eps]
         subprocess.run(command, check=True)
 
     convert_eps_to_pdf(filename, pdf_file)
