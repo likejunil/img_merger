@@ -1,5 +1,6 @@
 import logging
 import os
+import subprocess
 from uuid import uuid4
 
 from PIL import Image
@@ -12,6 +13,10 @@ from src.sender.sender import sender_proc
 
 
 # https://www.tutorialspoint.com/python_pillow/Python_pillow_merging_images.htm
+
+def change_ext(filename):
+    return f'{os.path.splitext(filename)[0]}.pdf'
+
 
 def conv_jpg(filename):
     """
@@ -35,8 +40,9 @@ def conv_jpg(filename):
     """
 
     img = Image.open(filename).convert('RGB')
-    img.filename = filename
-    return img
+    filename = change_ext(filename)
+    img.save(filename)
+    return filename
 
 
 def conv_png(filename):
@@ -67,7 +73,6 @@ def conv_png(filename):
     tmp = f'{uuid4()}.jpg'
     img.save(tmp)
     ret = conv_jpg(tmp)
-    ret.filename = filename
     os.remove(tmp)
     return ret
 
@@ -96,9 +101,17 @@ def conv_eps(filename):
     따라서 웹에 이미지를 게시하려면 EPS 파일을 JPEG, PNG 등의 래스터 형식으로 변환해야 합니다.
     """
 
-    img = Image.open(filename).convert('RGB')
-    img.filename = filename
-    return img
+    pdf_file = change_ext(filename)
+
+    # Ghostscript를 사용하여 EPS 파일을 PDF로 변환
+    # Ghostscript("-sDEVICE=pdfwrite", "-o", pdf_file, filename)
+
+    def convert_eps_to_pdf(eps, pdf):
+        command = ['gs', '-dNOPAUSE', '-sDEVICE=pdfwrite', '-o', pdf, eps]
+        subprocess.run(command, check=True)
+
+    convert_eps_to_pdf(filename, pdf_file)
+    return pdf_file
 
 
 def convert(filename):
@@ -122,7 +135,7 @@ def convert(filename):
 
 
 def convert_proc():
-    n = 2
+    n = 1
     receiver_list = [receiver_proc(convert, str(i + 1)) for i in range(n)]
 
     _, _, ok = ready_cont()

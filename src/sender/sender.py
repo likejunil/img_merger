@@ -1,83 +1,57 @@
+import io
 import logging
-import math
 import os
 from uuid import uuid4
 
-from PIL import Image
+from PyPDF2 import PdfFileReader
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
 
 from conf.conf import config as conf
 from src.comm.log import console_log
 
 
-def show_info(img):
-    logging.info(f'파일 이름 =|{img.filename}|')
-    logging.info(f'형식 =|{img.format}|')
-    logging.info(f'높이 =|{img.height}|')
-    logging.info(f'너비 =|{img.width}|')
-    logging.info(f'크기 =|{img.size}|')
+def get_output():
+    name = f'{uuid4()}.pdf'
+    ret = os.path.join(conf.sender_path, name)
+    logging.info(f'출력파일 =|{ret}|')
+    return ret
 
 
-def save_pdf_file(path, img, name):
-    ext = 'pdf'
-    file_name = os.path.basename(name)
-    base_name = os.path.splitext(file_name)[0]
-    name = os.path.join(path, f'{base_name}.{ext}')
-    img.save(name, ext)
-    logging.info(f'|{name}| 이미지 변환 저장 완료')
+def sender_proc(pdf_file_list):
+    # 각 PDF 파일의 위치
+    positions = [(0, 0), (0, 2000), (0, 4000)]
+    pdf_files = pdf_file_list
 
+    # 새로운 PDF 파일을 위한 캔버스 생성
+    c = canvas.Canvas(get_output(), pagesize=letter)
 
-def rotate_img(img, degree):
-    return img.rotate(degree)
+    # 각 PDF 파일을 불러와서 지정한 위치에 추가
+    for pdf_file, position in zip(pdf_files, positions):
+        # PDF 파일 읽기
+        reader = PdfFileReader(pdf_file)
 
+        # 첫 번째 페이지 가져오기
+        page = reader.getPage(0)
 
-def resize_img(img):
-    ratio = 1
-    return img.resize((math.floor(img.width * ratio), math.floor(img.height * ratio)))
+        # 페이지를 이미지로 변환
+        packet = io.BytesIO()
+        packet_img = canvas.Canvas(packet, pagesize=letter)
+        packet_img.drawImage(pdf_file, position[0], position[1])
+        packet_img.showPage()
+        packet_img.save()
 
+        # BytesIO 오브젝트를 다시 읽어서 새 페이지를 만듭니다
+        packet.seek(0)
+        new_pdf = PdfFileReader(packet)
+        page.mergePage(new_pdf.getPage(0))
 
-def merge_file(img, xy, new_image):
-    new_image.paste(img, xy)
+        # 새 페이지를 최종 PDF 파일에 추가
+        c.showPage()
+        c.save()
 
-
-def get_filename():
-    return f'{uuid4()}.tmp'
-
-
-def get_merged_img(size):
-    img = Image.new('RGB', size, (250, 250, 250))
-    return img
-
-
-def sender_proc(img_list):
-    path = os.path.join(conf.root_path, conf.sender_path)
-    logging.info(f'출력 디렉토리 =|{path}|')
-
-    # 출력 이미지 크기
-    height = 0
-    width = 0
-    for img in img_list:
-        if not img:
-            continue
-        if img.width > width:
-            width = img.width
-        height += img.height
-    logging.info(f'출력 이미지의 크기 height=|{height}| width=|{width}|')
-
-    new_image = get_merged_img((width, height))
-    name = get_filename()
-
-    # 파일 병합
-    h = 0
-    for i, img in enumerate(img_list, 0):
-        if not img:
-            continue
-        show_info(img)
-        img = rotate_img(img, 0)
-        img = resize_img(img)
-        merge_file(img, (0, 0 + h), new_image)
-        h += img.height
-
-    save_pdf_file(path, new_image, name)
+    # PDF 파일 닫기
+    c.save()
 
 
 if __name__ == '__main__':
@@ -85,7 +59,4 @@ if __name__ == '__main__':
 
     filename1 = '/Users/june1/Downloads/기타/cat.jpg'
     filename2 = '/Users/june1/Downloads/기타/dog.jpeg'
-
-    i1 = Image.open(filename1)
-    i2 = Image.open(filename2)
-    sender_proc((i1, i2))
+    sender_proc((filename1, filename2))
