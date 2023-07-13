@@ -14,10 +14,19 @@ yaml_file = 'yaml_file'
 # -------------------
 path = 'path'
 ext = 'ext'
-receiver = 'receiver'
-recv_path = 'recv_path'
-recv_ext = 'recv_ext'
 
-sender = 'sender'
-sender_path = 'sender_path'
-sender_ext = 'sender_ext'
+in_data = 'in_data'
+in_path = 'in_path'
+infile_ext = 'infile_ext'
+path_count = 'path_count'
+
+out_data = 'out_data'
+out_path = 'out_path'
+
+done_data = 'done_data'
+done_path = 'done_path'
+
+merged_data = 'merged_data'
+merged_path = 'merged_path'
+
+debug = 'debug'

@@ -1,7 +1,10 @@
+import asyncio as aio
 import fcntl
 import logging
 import sys
+from datetime import datetime as dt
 from signal import signal, SIGTERM, SIGINT
+from time import time
 from uuid import uuid4
 
 from conf.conf import config as conf
@@ -56,6 +59,25 @@ def set_signal(signo):
         signal(SIGINT, signal_handler)
     else:
         signal(signo, signal_handler)
+
+
+def get_loop():
+    try:
+        loop = aio.get_running_loop()
+    except Exception as e:
+        logging.info(e)
+        loop = aio.new_event_loop()
+    return loop
+
+
+def get_log_level():
+    return logging.DEBUG if conf.debug else logging.INFO
+
+
+def tm(t=None):
+    if not t:
+        t = time()
+    return dt.fromtimestamp(t).strftime('%H%M%S.%f')[:-3]
 
 
 def lock_run(proc_name=""):

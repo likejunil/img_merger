@@ -1,21 +1,31 @@
+import asyncio as aio
 import logging
 import os
 import subprocess
-from uuid import uuid4
+import threading
+from threading import Thread
+from time import time
 
 from PIL import Image
+from reportlab.pdfgen import canvas
 
 from conf.conf import config as conf
-from src.comm.comm import ready_cont
+from src.comm.comm import ready_cont, get_loop, get_log_level, tm
 from src.comm.log import console_log
-from src.receiver.receiver import receiver_proc
-from src.sender.sender import sender_proc
+from src.converter.watcher import Watcher
 
-
-# https://www.tutorialspoint.com/python_pillow/Python_pillow_merging_images.htm
 
 def change_ext(filename):
     return f'{os.path.splitext(filename)[0]}.pdf'
+
+
+def get_out_name(filename):
+    filename = change_ext(filename)
+    base = os.path.basename(filename)
+    name, ext = os.path.splitext(base)
+    base = f'{name}_{tm()}{ext}'
+    out = os.path.join(conf.root_path, conf.out_path, base)
+    return out
 
 
 def conv_jpg(filename):
@@ -40,9 +50,9 @@ def conv_jpg(filename):
     """
 
     img = Image.open(filename).convert('RGB')
-    filename = change_ext(filename)
-    img.save(filename)
-    return filename
+    out = get_out_name(filename)
+    img.save(out)
+    return out
 
 
 def conv_png(filename):
@@ -69,12 +79,18 @@ def conv_png(filename):
         - 그러나, 고해상도의 이미지를 웹에서 사용하거나 출력물을 만드는 데에는 PNG가 적합합니다.
     """
 
-    img = Image.open(filename).convert('RGB')
-    tmp = f'{uuid4()}.jpg'
-    img.save(tmp)
-    ret = conv_jpg(tmp)
-    os.remove(tmp)
-    return ret
+    # img = Image.open(filename).convert('RGB')
+    # out = get_out_name(filename)
+    # img.save(out)
+    # return out
+
+    # 이미지의 품질을 유지하기 위해 canvas 사용
+    img = Image.open(filename)
+    out_name = get_out_name(filename)
+    out = canvas.Canvas(out_name, pagesize=(img.width, img.height))
+    out.drawImage(filename, 0, 0, img.width, img.height)
+    out.save()
+    return out_name
 
 
 def conv_eps(filename):
@@ -101,17 +117,35 @@ def conv_eps(filename):
     따라서 웹에 이미지를 게시하려면 EPS 파일을 JPEG, PNG 등의 래스터 형식으로 변환해야 합니다.
     """
 
-    pdf_file = change_ext(filename)
-
-    # Ghostscript를 사용하여 EPS 파일을 PDF로 변환
-    # Ghostscript("-sDEVICE=pdfwrite", "-o", pdf_file, filename)
-
     def convert_eps_to_pdf(eps, pdf):
-        command = ['gs', '-dEPSCrop', '-dNOPAUSE', '-sDEVICE=pdfwrite', '-o', pdf, eps]
-        subprocess.run(command, check=True)
+        # Ghostscript를 사용하여 EPS 파일을 PDF로 변환
+        # Ghostscript("-sDEVICE=pdfwrite", "-dEPSCrop", "-o", pdf_file, filename)
 
+        command = ['gs', '-dEPSCrop', '-dNOPAUSE', '-sDEVICE=pdfwrite', '-o', pdf, eps]
+        # command = ['gs', '-dNOPAUSE', '-sDEVICE=pdfwrite', '-o', pdf,
+        #            '-dFIXEDMEDIA', '-dDEVICEWIDTHPOINTS=500', '-dDEVICEHEIGHTPOINTS=500', eps]
+        # command = ['gs', '-o', pdf, '-sDEVICE=pdfwrite',
+        #            '-dFIXEDMEDIA', '-dDEVICEWIDTHPOINTS=240', '-dDEVICEHEIGHTPOINTS=80',
+        #            '-c' '"<</BeginPage {0.5 0.5 scale}>> setpagedevice"', '-f', eps]
+
+        st = time()
+        subprocess.run(command, check=True)
+        et = time()
+        logging.info(f'|{os.path.basename(eps)}| --> |{os.path.basename(pdf)}| 변환 시간=|{et - st}초|')
+
+    pdf_file = get_out_name(filename)
     convert_eps_to_pdf(filename, pdf_file)
     return pdf_file
+
+
+def info(filename):
+    img = Image.open(filename)
+    logging.info(f'파일 이름 =|{os.path.basename(filename)}|')
+    logging.info(f'형식 =|{img.format}|')
+    logging.info(f'높이 =|{img.height}|')
+    logging.info(f'너비 =|{img.width}|')
+    logging.info(f'크기 =|{img.size}|')
+    return filename
 
 
 def convert(filename):
@@ -124,7 +158,7 @@ def convert(filename):
 
     try:
         file_ext = os.path.splitext(filename)[1][1:].lower()
-        if file_ext in conf.recv_ext:
+        if file_ext in conf.infile_ext:
             return procs[file_ext](filename)
         else:
             logging.error(f'|{filename}| 변환 미지원')
@@ -134,20 +168,51 @@ def convert(filename):
         logging.error(f'이미지 로드 실패 =|{e}|')
 
 
-def convert_proc():
-    n = 1
-    receiver_list = [receiver_proc(convert, str(i + 1)) for i in range(n)]
-
+async def do_convert(watcher):
     _, _, ok = ready_cont()
     while ok():
-        ret_list = list(map(lambda m: m.get_ret(), receiver_list))
-        sender_proc(ret_list)
+        b, r = watcher.get_ret()
+        if b:
+            logging.info(f'id =|{threading.get_ident()}| ret =|{r}|')
+            # 무엇가 하고 싶은 것을 해라..
 
-    for receiver in receiver_list:
-        receiver.stop_proc()
-    logging.info(f'receiver 인스턴스 중지 완료')
+        await aio.sleep(0.5)
+    watcher.stop_proc()
+
+
+async def thread_main(path, proc):
+    loop = get_loop()
+    watcher = Watcher(path, proc)
+    t1 = loop.create_task(watcher.run_proc())
+    t2 = loop.create_task(do_convert(watcher))
+    logging.info(f'태스크 생성 완료')
+
+    ret = await aio.gather(t1, t2)
+    logging.info(f'이벤트 루프 종료, 결과=|{ret}|')
+
+
+def thread_proc(path, proc):
+    aio.run(thread_main(path, proc))
+
+
+def converter_proc(proc):
+    in_path = os.path.join(conf.root_path, conf.in_path)
+    logging.info(f'입력 디렉토리 =|{in_path}|')
+
+    # 메인 쓰레드만이 시그널 등록을 할 수 있음
+    ready_cont()
+    t_list = []
+    logging.info(f'총 |{conf.path_count}|개의 디렉토리 모니터링')
+    for i in range(conf.path_count):
+        sub_path = os.path.join(in_path, str(i + 1))
+        t = Thread(target=thread_proc, args=(sub_path, proc), daemon=True)
+        t_list.append(t)
+        t.start()
+
+    for t in t_list:
+        t.join()
 
 
 if __name__ == '__main__':
-    console_log(logging.INFO)
-    convert_proc()
+    console_log(get_log_level())
+    converter_proc(convert)

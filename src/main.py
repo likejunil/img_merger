@@ -4,12 +4,10 @@ import sys
 
 from src.comm.comm import lock_run
 from src.comm.log import init_log
-from src.worker.worker import convert_proc
 
 
 def main_proc():
     init_log(logging.INFO, 'img_merger')
-    convert_proc()
 
 
 def set_daemon():

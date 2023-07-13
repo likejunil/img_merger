@@ -1,7 +1,21 @@
-receiver:
+# starter 에 의해서 src_data -> in_data
+src_data:
+  path: "data/src_files"
+
+in_data:
   path: "data/in_files"
   ext: [ "jpg", "jpeg", "png", "eps" ]
+  path_count: 9
 
-sender:
+# converter 에 의해서 in_data -> out_data
+out_data:
   path: "data/out_files"
-  ext: "pdf"
+
+# merger 에 의해서 out_data -> done_data, merged_data
+done_data:
+  path: "data/done_files"
+
+merged_data:
+  path: "data/merged_files"
+
+debug: True

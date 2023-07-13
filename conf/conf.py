@@ -34,10 +34,13 @@ def ready_conf():
     if not yml_conf:
         raise Exception(f'|{_.yaml_file}|로부터 정보를 읽지 못했습니다.')
 
-    conf_dict[_.recv_ext] = yml_conf[_.receiver][_.ext]
-    conf_dict[_.recv_path] = yml_conf[_.receiver][_.path]
-    conf_dict[_.sender_ext] = yml_conf[_.sender][_.ext]
-    conf_dict[_.sender_path] = yml_conf[_.sender][_.path]
+    conf_dict[_.debug] = yml_conf[_.debug]
+    conf_dict[_.in_path] = yml_conf[_.in_data][_.path]
+    conf_dict[_.infile_ext] = yml_conf[_.in_data][_.ext]
+    conf_dict[_.path_count] = yml_conf[_.in_data][_.path_count]
+    conf_dict[_.out_path] = yml_conf[_.out_data][_.path]
+    conf_dict[_.done_path] = yml_conf[_.done_data][_.path]
+    conf_dict[_.merged_path] = yml_conf[_.merged_data][_.path]
 
     # -----------------------
     # namedtuple 로 변환하여 반환
