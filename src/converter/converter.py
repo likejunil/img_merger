@@ -4,6 +4,7 @@ import os
 import threading
 from threading import Thread
 
+import qrcode
 from PIL import Image
 from reportlab.graphics import renderPDF
 from reportlab.graphics.barcode import createBarcodeDrawing
@@ -157,7 +158,18 @@ def conv_bar(filename):
 
 
 def conv_qr(filename):
-    pass
+    def get_name():
+        return f'{os.path.splitext(filename)[0]}.png'
+
+    with open(filename, "rt") as f:
+        data = f.read()
+        qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_H, box_size=10, border=4)
+        qr.add_data(data)
+        qr.make(fit=True)
+        img = qr.make_image(fill='black', back_color='white')
+        out_file = get_name()
+        img.save(out_file)
+        return out_file
 
 
 def conv_dm(filename):
