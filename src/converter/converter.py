@@ -1,17 +1,19 @@
 import asyncio as aio
 import logging
 import os
-import subprocess
 import threading
 from threading import Thread
-from time import time
 
 from PIL import Image
+from reportlab.graphics import renderPDF
+from reportlab.graphics.barcode import createBarcodeDrawing
+from reportlab.graphics.shapes import Drawing
 from reportlab.pdfgen import canvas
 
 from conf.conf import config as conf
 from src.comm.comm import ready_cont, get_loop, get_log_level, tm
 from src.comm.log import console_log
+from src.comm.util import exec_command
 from src.converter.watcher import Watcher
 
 
@@ -122,20 +124,44 @@ def conv_eps(filename):
         # Ghostscript("-sDEVICE=pdfwrite", "-dEPSCrop", "-o", pdf_file, filename)
 
         command = ['gs', '-dEPSCrop', '-dNOPAUSE', '-sDEVICE=pdfwrite', '-o', pdf, eps]
-        # command = ['gs', '-dNOPAUSE', '-sDEVICE=pdfwrite', '-o', pdf,
-        #            '-dFIXEDMEDIA', '-dDEVICEWIDTHPOINTS=500', '-dDEVICEHEIGHTPOINTS=500', eps]
-        # command = ['gs', '-o', pdf, '-sDEVICE=pdfwrite',
-        #            '-dFIXEDMEDIA', '-dDEVICEWIDTHPOINTS=240', '-dDEVICEHEIGHTPOINTS=80',
-        #            '-c' '"<</BeginPage {0.5 0.5 scale}>> setpagedevice"', '-f', eps]
-
-        st = time()
-        subprocess.run(command, check=True)
-        et = time()
-        logging.info(f'|{os.path.basename(eps)}| --> |{os.path.basename(pdf)}| 변환 시간=|{et - st}초|')
+        exec_command(command)
 
     pdf_file = get_out_name(filename)
     convert_eps_to_pdf(filename, pdf_file)
     return pdf_file
+
+
+def generate_barcode(mode, number, out_file):
+    barcode = createBarcodeDrawing(mode, value=number)
+    d = Drawing(110, 80)
+    d.add(barcode)
+    with open(out_file, 'wb') as f:
+        renderPDF.drawToFile(d, f, out_file)
+
+
+def conv_bar(filename):
+    def get_data():
+        base = os.path.basename(filename)
+        name = os.path.splitext(base)[0]
+        return name[-12:]
+
+    # 바코드를 생성할 숫자 (길이는 12자리)
+    data = get_data()
+    logging.info(f'바코드 생성, 번호=|{data}|')
+
+    # 바코드를 생성하고 이미지 파일로 저장
+    mode = conf.bar_type
+    out_file = get_out_name(filename)
+    generate_barcode(mode, data, out_file)
+    return filename
+
+
+def conv_qr(filename):
+    pass
+
+
+def conv_dm(filename):
+    pass
 
 
 def info(filename):
@@ -154,6 +180,9 @@ def convert(filename):
         'jpeg': conv_jpg,
         'png': conv_png,
         'eps': conv_eps,
+        'bar': conv_bar,
+        'qr': conv_qr,
+        'dm': conv_dm,
     }
 
     try:
@@ -174,7 +203,7 @@ async def do_convert(watcher):
         b, r = watcher.get_ret()
         if b:
             logging.info(f'id =|{threading.get_ident()}| ret =|{r}|')
-            # 무엇가 하고 싶은 것을 해라..
+            # 무엇이든.. 하고 싶은 작업을 여기서 해라..
 
         await aio.sleep(0.5)
     watcher.stop_proc()

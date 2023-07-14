@@ -30,3 +30,7 @@ merged_data = 'merged_data'
 merged_path = 'merged_path'
 
 debug = 'debug'
+
+barcode = 'barcode'
+bar = 'bar'
+bar_type = 'bar_type'

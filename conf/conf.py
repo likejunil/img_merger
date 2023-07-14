@@ -42,6 +42,8 @@ def ready_conf():
     conf_dict[_.done_path] = yml_conf[_.done_data][_.path]
     conf_dict[_.merged_path] = yml_conf[_.merged_data][_.path]
 
+    conf_dict[_.bar_type] = yml_conf[_.barcode][_.bar]
+
     # -----------------------
     # namedtuple 로 변환하여 반환
     # -----------------------

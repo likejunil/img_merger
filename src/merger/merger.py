@@ -8,6 +8,7 @@ from reportlab.pdfgen import canvas
 from conf.conf import config as conf
 from src.comm.comm import get_log_level, ready_cont
 from src.comm.log import console_log
+from src.comm.util import exec_command
 
 
 def get_task_info():
@@ -16,43 +17,36 @@ def get_task_info():
     info = {
         'input': {
             'key': 'abcd',
-            'count': 2,
+            'count': 4,
             'src': [
-                # {
-                #     'name': 'HK_V S1 EVO2 SUV HRS_image1.eps',
-                #     'coordi': (40, 20),
-                #     'size': (70, 40),
-                #     'rotate': 0,
-                #     'priority': 4,
-                # },
                 {
-                    'name': 'JP_G1_warning.eps',
-                    'coordi': (200, 0),
-                    'size': (35, 73.4),
+                    'name': '880856333945',
+                    'coordi': (155, 35),
+                    'size': (45, 15),
                     'rotate': 0,
                     'priority': 3,
                 },
-                # {
-                #     'name': 'G3_a',
-                #     'coordi': (0, 0),
-                #     'size': (240, 80),
-                #     'rotate': 0,
-                #     'priority': 1,
-                # },
-                # {
-                #     'name': 'HK_V S1 EVO2 SUV HRS_picto.eps',
-                #     'coordi': (180, 0),
-                #     'size': (40, 50),
-                #     'rotate': 0,
-                #     'priority': 2,
-                # },
-                # {
-                #     'name': 'HK_V S1 EVO2 SUV HRS_productName.eps',
-                #     'coordi': (50, 25),
-                #     'size': (120, 30),
-                #     'rotate': 0,
-                #     'priority': 1,
-                # },
+                {
+                    'name': 'JP_G1_warning',
+                    'coordi': (205, 5),
+                    'size': (33.20, 69.60),
+                    'rotate': 0,
+                    'priority': 3,
+                },
+                {
+                    'name': 'G3_a',
+                    'coordi': (0, 0),
+                    'size': (240, 80),
+                    'rotate': 0,
+                    'priority': 1,
+                },
+                {
+                    'name': 'HK_V S1 EVO2 SUV HRS_productName',
+                    'coordi': (26, 32),
+                    'size': (105, 15),
+                    'rotate': 0,
+                    'priority': 1,
+                },
             ]
         },
         'output': {
@@ -176,7 +170,7 @@ def resize_data(src_list, info_list, size):
 
             info = infos[0]
             # 사이즈 조정
-            tobe_width, tobe_heigth = info['size']
+            tobe_width, tobe_height = info['size']
             # 좌표
             x, y = info['coordi']
             logging.info(f'|{pure}| 위치해야 할 좌표=|{x, y}|')
@@ -185,25 +179,34 @@ def resize_data(src_list, info_list, size):
                 page = reader.getPage(0)
 
                 # 스케일 조정
-                asis_width, asis_height = page.mediaBox.upperRight
-                scale = round(tobe_width / asis_width, 4)
-                # page.scaleBy(float(scale))
-                logging.info(f'|{pure}| 원래 크기=|{asis_width, asis_height}| 목표 크기=|{tobe_width, tobe_heigth}| '
-                             f'변경된 크기=|{page.mediaBox.width, page.mediaBox.height}|')
+                ret = page.mediaBox.upperRight
+                asis_width = float(ret[0])
+                asis_height = float(ret[1])
+                scale_x = round(tobe_width / asis_width, 4)
+                scale_y = round(tobe_height / asis_height, 4)
+                logging.info(f'|{pure}| 원래 크기=|{asis_width, asis_height}| '
+                             f'목표 크기=|{tobe_width, tobe_height}| '
+                             f'스케일=|{scale_x, scale_y}|')
 
                 # 여백 주기
                 l_margin = x
-                b_margin = int(height - (tobe_heigth + y))
+                b_margin = int(height - (tobe_height + y))
                 logging.info(f'여백 주기, |{pure}| 좌=|{l_margin}| 하=|{b_margin}|')
-                if l_margin > 0 or b_margin > 0:
-                    page = add_margin(reader, l_margin, b_margin)
 
-                # 변환된 결과물 저장
-                writer = PdfFileWriter()
-                writer.addPage(page)
+                # 변환된 결과물 생성
                 o_file = get_padding_name(src)
-                with open(o_file, 'wb') as f:
-                    writer.write(f)
+                command = [
+                    'gs',
+                    '-sDEVICE=pdfwrite',
+                    '-o', o_file,
+                    '-dFIXEDMEDIA',
+                    f'-dDEVICEWIDTHPOINTS={width}',
+                    f'-dDEVICEHEIGHTPOINTS={height}',
+                    '-c',
+                    f'<</BeginPage {{{scale_x} {scale_y} scale}} /PageOffset [{l_margin} {b_margin}]>> setpagedevice',
+                    '-f', src
+                ]
+                exec_command(command)
                 out_list.append(o_file)
 
     return out_list
@@ -240,8 +243,8 @@ def merger_proc():
 
             # 이미지 정보 출력
             data_info(src_list)
-            # out_list = resize_data(src_list, info_list, size)
-            # merge_pdf(out_list, out_file, size)
+            out_list = resize_data(src_list, info_list, size)
+            merge_pdf(out_list, out_file, size)
 
             # todo 2023.0710 by june1
             #  - 지금은 오직 한 건만 진행..
