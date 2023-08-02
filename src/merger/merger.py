@@ -2,7 +2,7 @@ import logging
 import os
 from time import sleep
 
-from PyPDF2 import PdfFileReader, PdfFileWriter, PageObject
+from PyPDF2 import PdfFileReader, PdfFileWriter
 from reportlab.pdfgen import canvas
 
 from conf.conf import config as conf
@@ -17,35 +17,35 @@ def get_task_info():
     info = {
         'input': {
             'key': 'abcd',
-            'count': 4,
+            'count': 1,
             'src': [
+                # {
+                #     'name': 'G3_aaaa',
+                #     'coordi': (0, 0),
+                #     'size': (240, 80),
+                #     'rotate': 0,
+                #     'priority': 1,
+                # },
+                # {
+                #     'name': 'G3_warning',
+                #     'coordi': (217.596, 3.841),
+                #     'size': (18.344, 72.319),
+                #     'rotate': 0,
+                #     'priority': 3,
+                # },
+                # {
+                #     'name': 'HK_K135_a_productName',
+                #     'coordi': (22.7, 29.5),
+                #     'size': (130, 20),
+                #     'rotate': 0,
+                #     'priority': 1,
+                # },
                 {
                     'name': '880856333945',
-                    'coordi': (155, 35),
-                    'size': (45, 15),
+                    'coordi': (161.643, 32.108),
+                    'size': (42.596, 21.641),
                     'rotate': 0,
                     'priority': 3,
-                },
-                {
-                    'name': 'JP_G1_warning',
-                    'coordi': (205, 5),
-                    'size': (33.20, 69.60),
-                    'rotate': 0,
-                    'priority': 3,
-                },
-                {
-                    'name': 'G3_a',
-                    'coordi': (0, 0),
-                    'size': (240, 80),
-                    'rotate': 0,
-                    'priority': 1,
-                },
-                {
-                    'name': 'HK_V S1 EVO2 SUV HRS_productName',
-                    'coordi': (26, 32),
-                    'size': (105, 15),
-                    'rotate': 0,
-                    'priority': 1,
                 },
             ]
         },
@@ -96,7 +96,7 @@ def data_info(src_list):
                 page = pdf.getPage(0)
                 width, height = page.mediaBox.upperRight
                 logging.info(
-                    f'|{os.path.basename(src)}| 정보=|{info}| 페이지수=|{pages}| 크기=|{width, height}|'
+                    f'|{os.path.basename(src)}| 정보=|{info}| 페이지수=|{pages}| 크기=|{width, height}| '
                     f'미디어박스=|{page.mediaBox}| ')
 
 
@@ -107,7 +107,10 @@ def get_padding_name(src):
 
 def merge_pdf(file_list, out_file, size):
     # 너비와 높이를 포인트 단위로 지정
+    scale = 2.83463
     width, height = size
+    width *= scale
+    height *= scale
     logging.info(f'높이=|{height}| 너비=|{width}| 밑바탕 생성')
     c = canvas.Canvas(out_file, pagesize=(width, height))
     c.showPage()
@@ -128,29 +131,13 @@ def merge_pdf(file_list, out_file, size):
         output.write(f)
 
 
-def add_margin(reader, l_margin, b_margin):
-    # PDF 파일 읽기
-    # 원본 페이지 크기 가져오기
-    page = reader.getPage(0)
-    orig_width = page.mediaBox.getWidth()
-    orig_height = page.mediaBox.getHeight()
-
-    # 새 페이지의 크기 (원본 크기 + 여백)
-    new_width = orig_width + l_margin
-    new_height = orig_height + b_margin
-
-    # 원본 페이지 가져오기
-    # 새 페이지 만들기 (비어있음)
-    # 새 페이지 위에 원본 페이지 붙여넣기
-    orig_page = reader.getPage(0)
-    new_page = PageObject.createBlankPage(None, new_width, new_height)
-    new_page.mergeTranslatedPage(orig_page, l_margin, b_margin)
-    return new_page
-
-
 def resize_data(src_list, info_list, size):
+    scale = 2.83463
     # 전체 이미지의 크기
+    # 스케일 조정
     width, height = size
+    width *= scale
+    height *= scale
 
     out_list = []
     for src in src_list:
@@ -170,27 +157,28 @@ def resize_data(src_list, info_list, size):
 
             info = infos[0]
             # 사이즈 조정
-            tobe_width, tobe_height = info['size']
+            box_width, box_height = info['size']
+            box_width *= scale
+            box_height *= scale
             # 좌표
-            x, y = info['coordi']
-            logging.info(f'|{pure}| 위치해야 할 좌표=|{x, y}|')
+            box_x, box_y = info['coordi']
+            box_x *= scale
+            box_y *= scale
+            logging.info(f'|{pure}| 위치해야 할 좌표=|{box_x, box_y}|')
 
             if reader := PdfFileReader(file):
                 page = reader.getPage(0)
 
                 # 스케일 조정
                 ret = page.mediaBox.upperRight
-                asis_width = float(ret[0])
-                asis_height = float(ret[1])
-                scale_x = round(tobe_width / asis_width, 4)
-                scale_y = round(tobe_height / asis_height, 4)
-                logging.info(f'|{pure}| 원래 크기=|{asis_width, asis_height}| '
-                             f'목표 크기=|{tobe_width, tobe_height}| '
-                             f'스케일=|{scale_x, scale_y}|')
+                img_width = float(ret[0])
+                img_height = float(ret[1])
+                img_x = box_x + (box_width - img_width) / 2
+                img_y = box_y + (box_height - img_height) / 2
 
                 # 여백 주기
-                l_margin = x
-                b_margin = int(height - (tobe_height + y))
+                l_margin = img_x
+                b_margin = int(height - img_y - img_height)
                 logging.info(f'여백 주기, |{pure}| 좌=|{l_margin}| 하=|{b_margin}|')
 
                 # 변환된 결과물 생성
@@ -203,10 +191,11 @@ def resize_data(src_list, info_list, size):
                     f'-dDEVICEWIDTHPOINTS={width}',
                     f'-dDEVICEHEIGHTPOINTS={height}',
                     '-c',
-                    f'<</BeginPage {{{scale_x} {scale_y} scale}} /PageOffset [{l_margin} {b_margin}]>> setpagedevice',
+                    f'<</PageOffset [{l_margin} {b_margin}]>> setpagedevice',
                     '-f', src
                 ]
                 exec_command(command)
+
                 out_list.append(o_file)
 
     return out_list
@@ -243,8 +232,8 @@ def merger_proc():
 
             # 이미지 정보 출력
             data_info(src_list)
-            out_list = resize_data(src_list, info_list, size)
-            merge_pdf(out_list, out_file, size)
+            # out_list = resize_data(src_list, info_list, size)
+            # merge_pdf(out_list, out_file, size)
 
             # todo 2023.0710 by june1
             #  - 지금은 오직 한 건만 진행..

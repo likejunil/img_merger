@@ -1,19 +1,63 @@
-import qrcode
+import json
+import os
+
+from conf.conf import config as conf
 
 
 def main():
-    # QR 코드에 삽입할 데이터
-    data = "https://www.google.com"
-
-    # QR 코드 생성
-    qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_H, box_size=10, border=4)
-    qr.add_data(data)
-    qr.make(fit=True)
-
-    # 이미지 파일로 저장
-    img = qr.make_image(fill='black', back_color='white')
-    img.save('qrcode.png')
-    pass
+    """
+    filename = 'jabinfo.text'
+    data = {
+        'font': 'Helvetica',
+        'size': '6',
+        'bold': False,
+        'italic': False,
+        'align': 'left',
+        'rotate': 90,
+        'letter-space': 0,
+        'content': 'D-0000100664-221006',
+        'coordi_x': 214.607,
+        'coordi_y': 64.94,
+        'width': 2.269,
+        'height': 24,
+    }
+    """
+    filename = 'Size_spec.text'
+    data = {
+        'font': 'Helvetica',
+        'size': '48',
+        'bold': True,
+        'italic': False,
+        'align': 'center',
+        'rotate': 0,
+        'letter-space': 0,
+        'content': '205/50R17 93W XL',
+        'coordi_x': 111.685,
+        'coordi_y': 63.678,
+        'width': 178,
+        'height': 18.203,
+    }
+    """
+    filename = 'M_code.text'
+    data = {
+        'font': 'Helvetica',
+        'size': '21.1',
+        'bold': True,
+        'italic': False,
+        'align': 'center',
+        'rotate': 0,
+        'letter-space': 0,
+        'content': '1014070',
+        'coordi_x': 182.683,
+        'coordi_y': 32.488,
+        'width': 32,
+        'height': 8,
+    }
+    """
+    in_path = os.path.join(conf.root_path, conf.in_path)
+    output = os.path.join(in_path, filename)
+    with open(output, mode='wt', encoding='utf8') as f:
+        json.dump(data, f)
 
 
 if __name__ == '__main__':

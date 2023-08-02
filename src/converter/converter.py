@@ -1,14 +1,19 @@
 import asyncio as aio
+import json
 import logging
 import os
 import threading
 from threading import Thread
+from uuid import uuid4
 
 import qrcode
 from PIL import Image
+from PyPDF2 import PdfFileReader
+from pylibdmtx.pylibdmtx import encode
 from reportlab.graphics import renderPDF
-from reportlab.graphics.barcode import createBarcodeDrawing
+from reportlab.graphics.barcode import eanbc
 from reportlab.graphics.shapes import Drawing
+from reportlab.lib.pagesizes import mm
 from reportlab.pdfgen import canvas
 
 from conf.conf import config as conf
@@ -22,6 +27,10 @@ def change_ext(filename):
     return f'{os.path.splitext(filename)[0]}.pdf'
 
 
+def get_in_name(filename):
+    return f'{os.path.splitext(filename)[0]}.png'
+
+
 def get_out_name(filename):
     filename = change_ext(filename)
     base = os.path.basename(filename)
@@ -29,6 +38,28 @@ def get_out_name(filename):
     base = f'{name}_{tm()}{ext}'
     out = os.path.join(conf.root_path, conf.out_path, base)
     return out
+
+
+def scale_mm2inch(src, dst):
+    # scale = 0.35278
+    scale = 1
+    with open(src, 'rb') as file:
+        if reader := PdfFileReader(file):
+            page = reader.getPage(0)
+            ret = page.mediaBox.upperRight
+            width = float(ret[0]) * scale
+            height = float(ret[1]) * scale
+            command = [
+                'gs',
+                '-sDEVICE=pdfwrite',
+                '-dFIXEDMEDIA',
+                f'-dDEVICEWIDTHPOINTS={width}',
+                f'-dDEVICEHEIGHTPOINTS={height}',
+                '-o', dst,
+                '-c', f'<</BeginPage {{{scale} {scale} scale}}>> setpagedevice',
+                '-f', src
+            ]
+            exec_command(command)
 
 
 def conv_jpg(filename):
@@ -124,8 +155,19 @@ def conv_eps(filename):
         # Ghostscript를 사용하여 EPS 파일을 PDF로 변환
         # Ghostscript("-sDEVICE=pdfwrite", "-dEPSCrop", "-o", pdf_file, filename)
 
-        command = ['gs', '-dEPSCrop', '-dNOPAUSE', '-sDEVICE=pdfwrite', '-o', pdf, eps]
+        tmp_file = f'{uuid4()}.pdf'
+        command = [
+            'gs',
+            '-dNOPAUSE',
+            '-sDEVICE=pdfwrite',
+            '-dEPSCrop',
+            # '-o', tmp_file,
+            '-o', pdf,
+            '-f', eps
+        ]
         exec_command(command)
+        # scale_mm2inch(tmp_file, pdf)
+        # os.remove(tmp_file)
 
     pdf_file = get_out_name(filename)
     convert_eps_to_pdf(filename, pdf_file)
@@ -133,11 +175,12 @@ def conv_eps(filename):
 
 
 def generate_barcode(mode, number, out_file):
-    barcode = createBarcodeDrawing(mode, value=number)
-    d = Drawing(110, 80)
+    barcode = eanbc.Ean13BarcodeWidget(number)
+    c = canvas.Canvas(out_file, pagesize=(99, 75))
+    d = Drawing(99, 75)
     d.add(barcode)
-    with open(out_file, 'wb') as f:
-        renderPDF.drawToFile(d, f, out_file)
+    renderPDF.draw(d, c, 0, 0)
+    c.save()
 
 
 def conv_bar(filename):
@@ -158,22 +201,57 @@ def conv_bar(filename):
 
 
 def conv_qr(filename):
-    def get_name():
-        return f'{os.path.splitext(filename)[0]}.png'
-
     with open(filename, "rt") as f:
         data = f.read()
         qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_H, box_size=10, border=4)
         qr.add_data(data)
         qr.make(fit=True)
         img = qr.make_image(fill='black', back_color='white')
-        out_file = get_name()
+        out_file = get_in_name(filename)
         img.save(out_file)
         return out_file
 
 
-def conv_dm(filename):
-    pass
+def conv_dmtx(filename):
+    with open(filename, "rt") as f:
+        data = f.read()
+        encoded = encode(data.encode())
+        img = Image.frombytes('RGB', (encoded.width, encoded.height), encoded.pixels)
+        out_file = get_in_name(filename)
+        img.save(out_file)
+        return out_file
+
+
+def generate_pdf(data, filename):
+    """
+    data = {
+        'font': '',
+        'size': '',
+        'bold': True,
+        'italic': False,
+        'align': 'left' | 'center' | 'right'
+        'letter-space': 0,
+        'content': '',
+        'coordi_x': 10,
+        'coordi_y': 10,
+        'width': 10,
+        'height': 10,
+    }
+    """
+    print(data)
+    c = canvas.Canvas(filename, pagesize=(float(data.get('width')) * mm, float(data.get('height')) * mm))
+    c.setFont(data.get('font'), float(data.get('size')))
+    # 데카르트 좌표(좌하단, 즉 원점으로부터..)
+    c.drawString(0, 0, data.get('content'))
+    c.save()
+
+
+def conv_text(filename):
+    with open(filename, "rt") as f:
+        data = json.load(f)
+        out_file = get_out_name(filename)
+        generate_pdf(data, out_file)
+        return out_file
 
 
 def info(filename):
@@ -194,7 +272,8 @@ def convert(filename):
         'eps': conv_eps,
         'bar': conv_bar,
         'qr': conv_qr,
-        'dm': conv_dm,
+        'dmtx': conv_dmtx,
+        'text': conv_text,
     }
 
     try:
@@ -246,6 +325,8 @@ def converter_proc(proc):
     logging.info(f'총 |{conf.path_count}|개의 디렉토리 모니터링')
     for i in range(conf.path_count):
         sub_path = os.path.join(in_path, str(i + 1))
+        # todo 2023.0726 by june1
+        #  - 추후 쓰레드에서 프로세스로 변경할 필요 있음
         t = Thread(target=thread_proc, args=(sub_path, proc), daemon=True)
         t_list.append(t)
         t.start()

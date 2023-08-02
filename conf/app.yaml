@@ -4,14 +4,14 @@ src_data:
 
 in_data:
   path: "data/in_files"
-  ext: [ "jpg", "jpeg", "png", "eps", "bar", "qr", "dm" ]
+  ext: [ "jpg", "jpeg", "png", "eps", "bar", "qr", "dmtx", "text" ]
   path_count: 9
 
 barcode:
   bar: "EAN13"
   # bar: "UPCA"
   qr: ""
-  dm: ""
+  dmtx: ""
 
 # converter 에 의해서 in_data -> out_data
 out_data:
