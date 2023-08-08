@@ -2,6 +2,7 @@ import logging
 import os
 from time import sleep
 
+import PyPDF2
 from PyPDF2 import PdfFileReader, PdfFileWriter
 from reportlab.pdfgen import canvas
 
@@ -17,34 +18,55 @@ def get_task_info():
     info = {
         'input': {
             'key': 'abcd',
-            'count': 1,
+            'count': 7,
             'src': [
-                # {
-                #     'name': 'G3_aaaa',
-                #     'coordi': (0, 0),
-                #     'size': (240, 80),
-                #     'rotate': 0,
-                #     'priority': 1,
-                # },
-                # {
-                #     'name': 'G3_warning',
-                #     'coordi': (217.596, 3.841),
-                #     'size': (18.344, 72.319),
-                #     'rotate': 0,
-                #     'priority': 3,
-                # },
-                # {
-                #     'name': 'HK_K135_a_productName',
-                #     'coordi': (22.7, 29.5),
-                #     'size': (130, 20),
-                #     'rotate': 0,
-                #     'priority': 1,
-                # },
+                {
+                    'name': 'G3_aaaa',
+                    'coordi': (0, 0),
+                    'size': (240, 80),
+                    'rotate': 0,
+                    'priority': 1,
+                },
+                {
+                    'name': 'G3_warning',
+                    'coordi': (217.596, 3.841),
+                    'size': (18.344, 72.319),
+                    'rotate': 0,
+                    'priority': 3,
+                },
+                {
+                    'name': 'HK_K135_a_productName',
+                    'coordi': (22.7, 29.5),
+                    'size': (130, 20),
+                    'rotate': 0,
+                    'priority': 1,
+                },
                 {
                     'name': '880856333945',
                     'coordi': (161.643, 32.108),
                     'size': (42.596, 21.641),
                     'rotate': 0,
+                    'priority': 3,
+                },
+                {
+                    'name': 'Size_spec',
+                    'coordi': (23.101, 57.041),
+                    'size': (149.301, 12.667),
+                    'rotate': 0,
+                    'priority': 3,
+                },
+                {
+                    'name': 'M_code',
+                    'coordi': (168.541, 29.58),
+                    'size': (27.972, 5.365),
+                    'rotate': 0,
+                    'priority': 3,
+                },
+                {
+                    'name': 'jabinfo',
+                    'coordi': (213.336, 52.504),
+                    'size': (1.619, 23.858),
+                    'rotate': 90,
                     'priority': 3,
                 },
             ]
@@ -103,6 +125,22 @@ def data_info(src_list):
 def get_padding_name(src):
     b, e = os.path.splitext(src)
     return f'{b}__RESIZE__{e}'
+
+
+def rotate_text(src, dst, degree):
+    # PDF 파일을 열고 페이지를 추출합니다.
+    with open(src, 'rb') as pdf_file:
+        pdf_reader = PyPDF2.PdfFileReader(pdf_file)
+        page = pdf_reader.getPage(0)
+
+        # 페이지를 원하는 방향으로 회전합니다.
+        rotated_page = page.rotateClockwise(degree)
+
+        # 회전된 페이지를 새로운 PDF 파일로 저장합니다.
+        pdf_writer = PyPDF2.PdfFileWriter()
+        pdf_writer.addPage(rotated_page)
+        with open(dst, 'wb') as pdf_output_file:
+            pdf_writer.write(pdf_output_file)
 
 
 def merge_pdf(file_list, out_file, size):
@@ -164,22 +202,24 @@ def resize_data(src_list, info_list, size):
             box_x, box_y = info['coordi']
             box_x *= scale
             box_y *= scale
-            logging.info(f'|{pure}| 위치해야 할 좌표=|{box_x, box_y}|')
+            logging.info(f'|{pure}| 좌표정보, |{box_x, box_y}|')
 
             if reader := PdfFileReader(file):
                 page = reader.getPage(0)
 
                 # 스케일 조정
                 ret = page.mediaBox.upperRight
+                logging.info(f'|{pure}| 크기정보, 이미지의 너비=|{ret[0]}| 높이=|{ret[1]}|')
                 img_width = float(ret[0])
                 img_height = float(ret[1])
                 img_x = box_x + (box_width - img_width) / 2
                 img_y = box_y + (box_height - img_height) / 2
 
-                # 여백 주기
+                # 여백 주기, 회전
                 l_margin = img_x
                 b_margin = int(height - img_y - img_height)
-                logging.info(f'여백 주기, |{pure}| 좌=|{l_margin}| 하=|{b_margin}|')
+                rotate = info['rotate']
+                logging.info(f'|{pure}| 여백주기, 좌=|{l_margin}| 하=|{b_margin}| 회전=|{rotate}|')
 
                 # 변환된 결과물 생성
                 o_file = get_padding_name(src)
@@ -190,12 +230,10 @@ def resize_data(src_list, info_list, size):
                     '-dFIXEDMEDIA',
                     f'-dDEVICEWIDTHPOINTS={width}',
                     f'-dDEVICEHEIGHTPOINTS={height}',
-                    '-c',
-                    f'<</PageOffset [{l_margin} {b_margin}]>> setpagedevice',
+                    '-c', f'<</PageOffset [{l_margin} {b_margin}]>> setpagedevice',
                     '-f', src
                 ]
                 exec_command(command)
-
                 out_list.append(o_file)
 
     return out_list
@@ -232,8 +270,8 @@ def merger_proc():
 
             # 이미지 정보 출력
             data_info(src_list)
-            # out_list = resize_data(src_list, info_list, size)
-            # merge_pdf(out_list, out_file, size)
+            out_list = resize_data(src_list, info_list, size)
+            merge_pdf(out_list, out_file, size)
 
             # todo 2023.0710 by june1
             #  - 지금은 오직 한 건만 진행..

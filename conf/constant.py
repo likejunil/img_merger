@@ -34,3 +34,10 @@ debug = 'debug'
 barcode = 'barcode'
 bar = 'bar'
 bar_type = 'bar_type'
+
+# -------------------
+# ext
+# -------------------
+pdf = '.pdf'
+png = '.png'
+eps = '.eps'

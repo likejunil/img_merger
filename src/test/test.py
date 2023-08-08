@@ -60,5 +60,18 @@ def main():
         json.dump(data, f)
 
 
+def test():
+    filename = 'abcd_880856333945.bar'
+    data = {
+        'width': 42.596,
+        'height': 21.641,
+    }
+    data_path = os.path.join(conf.root_path, conf.data_path, 'src_files')
+    output = os.path.join(data_path, filename)
+    with open(output, mode='wt', encoding='utf8') as f:
+        json.dump(data, f, indent=4, ensure_ascii=False)
+
+
 if __name__ == '__main__':
-    main()
+    # main()
+    test()

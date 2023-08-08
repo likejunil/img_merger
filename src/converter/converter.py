@@ -13,50 +13,82 @@ from pylibdmtx.pylibdmtx import encode
 from reportlab.graphics import renderPDF
 from reportlab.graphics.barcode import eanbc
 from reportlab.graphics.shapes import Drawing
-from reportlab.lib.pagesizes import mm
+from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 
 from conf.conf import config as conf
+from conf.constant import pdf, png, eps
 from src.comm.comm import ready_cont, get_loop, get_log_level, tm
 from src.comm.log import console_log
 from src.comm.util import exec_command
 from src.converter.watcher import Watcher
 
 
-def change_ext(filename):
-    return f'{os.path.splitext(filename)[0]}.pdf'
-
-
-def get_in_name(filename):
-    return f'{os.path.splitext(filename)[0]}.png'
+def change_ext(filename, ext=pdf):
+    return f'{os.path.splitext(filename)[0]}{ext}'
 
 
 def get_out_name(filename):
-    filename = change_ext(filename)
+    filename = change_ext(filename, pdf)
     base = os.path.basename(filename)
     name, ext = os.path.splitext(base)
-    base = f'{name}_{tm()}{ext}'
-    out = os.path.join(conf.root_path, conf.out_path, base)
-    return out
+    return os.path.join(conf.root_path, conf.out_path, f'{name}_{tm()}{ext}')
 
 
-def scale_mm2inch(src, dst):
-    # scale = 0.35278
-    scale = 1
+def get_tmp_name(ext):
+    tmp_path = os.path.join(conf.root_path, conf.data_path, 'tmp_files')
+    tmp_file = f'{tmp_path}/{str(uuid4())}{ext}'
+    logging.info(f'이미지 생성을 위한 임시파일=|{tmp_file}|')
+    return tmp_file
+
+
+def fit_image_to_pdf(src, dst):
+    command = [
+        'gs',
+        '-dNOPAUSE',
+        '-dEPSCrop',
+        '-sDEVICE=pdfwrite',
+        '-o', dst,
+        '-f', src
+    ]
+    exec_command(command)
+
+
+def fit_image_to_eps(src, dst):
+    # gs -dNOPAUSE -dBATCH -sDEVICE=eps2write -sOutputFile=output.eps input.pdf
+    command = [
+        'gs',
+        '-dNOPAUSE',
+        '-dEPSCrop',
+        '-sDEVICE=eps2write',
+        '-o', dst,
+        '-f', src
+    ]
+    exec_command(command)
+
+
+def convert_scale(src, dst, size):
+    # scale = 2.83463
+    # 2.83463 을 곱하면 이미지 박스의 크기가 된다.
+    # 해당 이미지는 이미지 박스 안에 자리잡아야 한다.
+    # 정확한 이미지의 크기를 알 수 없을까?
+    scale = mm * 0.8
+    to_width, to_height = size
+    to_width, to_height = to_width * scale, to_height * scale
     with open(src, 'rb') as file:
         if reader := PdfFileReader(file):
             page = reader.getPage(0)
-            ret = page.mediaBox.upperRight
-            width = float(ret[0]) * scale
-            height = float(ret[1]) * scale
+            width, height = page.mediaBox.upperRight
+            w_scale = (to_width / width)
+            h_scale = (to_height / height)
             command = [
                 'gs',
                 '-sDEVICE=pdfwrite',
                 '-dFIXEDMEDIA',
-                f'-dDEVICEWIDTHPOINTS={width}',
-                f'-dDEVICEHEIGHTPOINTS={height}',
+                f'-dDEVICEWIDTHPOINTS={to_width}',
+                f'-dDEVICEHEIGHTPOINTS={to_height}',
                 '-o', dst,
-                '-c', f'<</BeginPage {{{scale} {scale} scale}}>> setpagedevice',
+                '-c', f'<</BeginPage {{{w_scale} {h_scale} scale}}>> setpagedevice',
                 '-f', src
             ]
             exec_command(command)
@@ -151,52 +183,70 @@ def conv_eps(filename):
     따라서 웹에 이미지를 게시하려면 EPS 파일을 JPEG, PNG 등의 래스터 형식으로 변환해야 합니다.
     """
 
-    def convert_eps_to_pdf(eps, pdf):
+    def convert_eps_to_pdf(eps_, pdf_):
         # Ghostscript를 사용하여 EPS 파일을 PDF로 변환
         # Ghostscript("-sDEVICE=pdfwrite", "-dEPSCrop", "-o", pdf_file, filename)
-
-        tmp_file = f'{uuid4()}.pdf'
-        command = [
-            'gs',
-            '-dNOPAUSE',
-            '-sDEVICE=pdfwrite',
-            '-dEPSCrop',
-            # '-o', tmp_file,
-            '-o', pdf,
-            '-f', eps
-        ]
-        exec_command(command)
-        # scale_mm2inch(tmp_file, pdf)
-        # os.remove(tmp_file)
+        fit_image_to_pdf(eps_, pdf_)
 
     pdf_file = get_out_name(filename)
     convert_eps_to_pdf(filename, pdf_file)
     return pdf_file
 
 
-def generate_barcode(mode, number, out_file):
+def generate_barcode(number, out_file):
+    # width, height = 99, 75
+    width, height = 120, 90
     barcode = eanbc.Ean13BarcodeWidget(number)
-    c = canvas.Canvas(out_file, pagesize=(99, 75))
-    d = Drawing(99, 75)
+    c = canvas.Canvas(out_file, pagesize=(width, height))
+    d = Drawing(width, height)
     d.add(barcode)
-    renderPDF.draw(d, c, 0, 0)
+    renderPDF.draw(d, c, 10, 10)
     c.save()
 
 
 def conv_bar(filename):
-    def get_data():
-        base = os.path.basename(filename)
-        name = os.path.splitext(base)[0]
-        return name[-12:]
+    def read_bar_info(f_name):
+        try:
+            with open(f_name, 'rt', encoding='utf8') as f:
+                size_json = json.load(f)
+                logging.info(f'|{filename}| 파일로부터 바코드 사이즈 정보 획득=|{size_json}|')
+                return size_json['width'], size_json['height']
+        except Exception as e:
+            logging.error(f'바코드 파일 에러 발생=|{e}|')
+
+    base = os.path.basename(filename)
+    ret = os.path.splitext(base)
+    if len(ret) != 2:
+        logging.error(f'바코드 파일 이름 에러 =|{filename}|')
+        return
+    name, ext = ret
+
+    if not (size := read_bar_info(filename)):
+        logging.error(f'바코드 사이즈 획득 실패')
+        return
 
     # 바코드를 생성할 숫자 (길이는 12자리)
-    data = get_data()
+    data = name[-12:]
     logging.info(f'바코드 생성, 번호=|{data}|')
 
-    # 바코드를 생성하고 이미지 파일로 저장
-    mode = conf.bar_type
+    # 바코드를 생성하고 임시 파일에 저장
+    tmp_file = get_tmp_name(pdf)
+    generate_barcode(data, tmp_file)
+
+    # 임시 파일을 읽어서 스케일 조정
+    tmp_pdf = get_tmp_name(pdf)
+    convert_scale(tmp_file, tmp_pdf, size)
+
+    # 상하좌우 여백 없애기
+    tmp_eps = get_tmp_name(eps)
     out_file = get_out_name(filename)
-    generate_barcode(mode, data, out_file)
+    fit_image_to_eps(tmp_pdf, tmp_eps)
+    fit_image_to_pdf(tmp_eps, out_file)
+
+    # 임시 파일 삭제
+    os.remove(tmp_file)
+    os.remove(tmp_pdf)
+    os.remove(tmp_eps)
     return filename
 
 
@@ -207,7 +257,7 @@ def conv_qr(filename):
         qr.add_data(data)
         qr.make(fit=True)
         img = qr.make_image(fill='black', back_color='white')
-        out_file = get_in_name(filename)
+        out_file = change_ext(filename, png)
         img.save(out_file)
         return out_file
 
@@ -217,7 +267,7 @@ def conv_dmtx(filename):
         data = f.read()
         encoded = encode(data.encode())
         img = Image.frombytes('RGB', (encoded.width, encoded.height), encoded.pixels)
-        out_file = get_in_name(filename)
+        out_file = change_ext(filename, png)
         img.save(out_file)
         return out_file
 
@@ -226,23 +276,29 @@ def generate_pdf(data, filename):
     """
     data = {
         'font': '',
-        'size': '',
-        'bold': True,
-        'italic': False,
-        'align': 'left' | 'center' | 'right'
-        'letter-space': 0,
+        'size': 14,
+        'rotate': 0,
         'content': '',
-        'coordi_x': 10,
-        'coordi_y': 10,
-        'width': 10,
-        'height': 10,
+        'size': [149.301, 12.667],
     }
     """
-    print(data)
-    c = canvas.Canvas(filename, pagesize=(float(data.get('width')) * mm, float(data.get('height')) * mm))
-    c.setFont(data.get('font'), float(data.get('size')))
+    # tmp_pdf = get_tmp_name(pdf)
+    logging.info(f'텍스트 삽입=|{data}| 임시 파일=|{filename}|')
+    size = list(data.get('size'))
+    width, height = size
+    logging.info(f'너비=|{width}| 높이=|{height}| 회전=|{data.get("rotate")}| '
+                 f'폰트=|{data.get("font")}| 폰트_사이즈=|{data.get("font-size")}|')
+
+    c = canvas.Canvas(filename, pagesize=(width * mm, 2 * height * mm))
+    c.setFont(data.get('font'), float(data.get('font-size')))
+
     # 데카르트 좌표(좌하단, 즉 원점으로부터..)
-    c.drawString(0, 0, data.get('content'))
+    if degree := data.get('rotate'):
+        c.rotate(degree)
+        c.drawString(height / 2 * mm, -width * mm, data.get('content'))
+        # c.drawString()
+    else:
+        c.drawCentredString(width / 2 * mm, height / 2 * mm, data.get('content'))
     c.save()
 
 
