@@ -1,5 +1,6 @@
 import asyncio as aio
 import logging
+from time import time
 
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
@@ -35,8 +36,11 @@ class Watcher(FileSystemEventHandler):
             return
 
         if self.filtering(event.src_path):
+            st = time()
             logging.info(f'|{self.filename}| 처리 프로세스 시작')
             self._ret.append(self.proc(self.filename))
+            et = time()
+            print(f'소요시간=|{et - st}|')
 
     def on_moved(self, event):
         logging.debug(f'|{event.src_path}| 이동 이벤트 발생')

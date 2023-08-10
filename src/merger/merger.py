@@ -1,6 +1,6 @@
 import logging
 import os
-from time import sleep
+from time import sleep, time
 
 import PyPDF2
 from PyPDF2 import PdfFileReader, PdfFileWriter
@@ -47,6 +47,8 @@ def get_task_info():
                     'size': (42.596, 21.641),
                     'rotate': 0,
                     'priority': 3,
+                    # EAN13 의 경우 바코드 우측 숫자가 없으므로 좌측으로 조금 이동 필요..
+                    'left_move': 5,
                 },
                 {
                     'name': 'Size_spec',
@@ -216,7 +218,7 @@ def resize_data(src_list, info_list, size):
                 img_y = box_y + (box_height - img_height) / 2
 
                 # 여백 주기, 회전
-                l_margin = img_x
+                l_margin = img_x - info.get('left_move', 0)
                 b_margin = int(height - img_y - img_height)
                 rotate = info['rotate']
                 logging.info(f'|{pure}| 여백주기, 좌=|{l_margin}| 하=|{b_margin}| 회전=|{rotate}|')
@@ -286,4 +288,7 @@ def merger_proc():
 
 if __name__ == '__main__':
     console_log(get_log_level())
+    st = time()
     merger_proc()
+    et = time()
+    print(f'경과시간=|{et - st}|')

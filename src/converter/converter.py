@@ -3,7 +3,8 @@ import json
 import logging
 import os
 import threading
-from threading import Thread
+from multiprocessing import Process
+from time import sleep
 from uuid import uuid4
 
 import qrcode
@@ -72,15 +73,17 @@ def convert_scale(src, dst, size):
     # 2.83463 을 곱하면 이미지 박스의 크기가 된다.
     # 해당 이미지는 이미지 박스 안에 자리잡아야 한다.
     # 정확한 이미지의 크기를 알 수 없을까?
-    scale = mm * 0.8
-    to_width, to_height = size
+    scale = mm * 1.0
+    # to_width, to_height = size
+    # to_width, to_height = 47.33, 24.04
+    to_width, to_height = 37.0, 13.5
     to_width, to_height = to_width * scale, to_height * scale
     with open(src, 'rb') as file:
         if reader := PdfFileReader(file):
             page = reader.getPage(0)
             width, height = page.mediaBox.upperRight
-            w_scale = (to_width / width)
-            h_scale = (to_height / height)
+            w_scale = (to_width / float(width))
+            h_scale = (to_height / float(height))
             command = [
                 'gs',
                 '-sDEVICE=pdfwrite',
@@ -194,8 +197,7 @@ def conv_eps(filename):
 
 
 def generate_barcode(number, out_file):
-    # width, height = 99, 75
-    width, height = 120, 90
+    width, height = 240, 120
     barcode = eanbc.Ean13BarcodeWidget(number)
     c = canvas.Canvas(out_file, pagesize=(width, height))
     d = Drawing(width, height)
@@ -233,20 +235,22 @@ def conv_bar(filename):
     tmp_file = get_tmp_name(pdf)
     generate_barcode(data, tmp_file)
 
-    # 임시 파일을 읽어서 스케일 조정
-    tmp_pdf = get_tmp_name(pdf)
-    convert_scale(tmp_file, tmp_pdf, size)
-
     # 상하좌우 여백 없애기
     tmp_eps = get_tmp_name(eps)
-    out_file = get_out_name(filename)
-    fit_image_to_eps(tmp_pdf, tmp_eps)
-    fit_image_to_pdf(tmp_eps, out_file)
+    tmp_pdf = get_tmp_name(pdf)
+    fit_image_to_eps(tmp_file, tmp_eps)
+    fit_image_to_pdf(tmp_eps, tmp_pdf)
 
+    # 임시 파일을 읽어서 스케일 조정
+    out_file = get_out_name(filename)
+    convert_scale(tmp_pdf, out_file, size)
+
+    """
     # 임시 파일 삭제
     os.remove(tmp_file)
     os.remove(tmp_pdf)
     os.remove(tmp_eps)
+    """
     return filename
 
 
@@ -383,10 +387,17 @@ def converter_proc(proc):
         sub_path = os.path.join(in_path, str(i + 1))
         # todo 2023.0726 by june1
         #  - 추후 쓰레드에서 프로세스로 변경할 필요 있음
-        t = Thread(target=thread_proc, args=(sub_path, proc), daemon=True)
+        # t = Thread(target=thread_proc, args=(sub_path, proc), daemon=True)
+        t = Process(target=thread_proc, args=(sub_path, proc), daemon=True)
         t_list.append(t)
         t.start()
 
+    _, _, ok = ready_cont()
+    while ok():
+        sleep(1)
+
+    for t in t_list:
+        t.terminate()
     for t in t_list:
         t.join()
 
