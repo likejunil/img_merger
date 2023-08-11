@@ -76,7 +76,8 @@ def convert_scale(src, dst, size):
     scale = mm * 1.0
     # to_width, to_height = size
     # to_width, to_height = 47.33, 24.04
-    to_width, to_height = 37.0, 13.5
+    # to_width, to_height = 37.0, 13.5
+    to_width, to_height = 30.9, 11.0
     to_width, to_height = to_width * scale, to_height * scale
     with open(src, 'rb') as file:
         if reader := PdfFileReader(file):
@@ -245,12 +246,10 @@ def conv_bar(filename):
     out_file = get_out_name(filename)
     convert_scale(tmp_pdf, out_file, size)
 
-    """
     # 임시 파일 삭제
     os.remove(tmp_file)
     os.remove(tmp_pdf)
     os.remove(tmp_eps)
-    """
     return filename
 
 
