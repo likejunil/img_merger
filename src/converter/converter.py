@@ -371,6 +371,7 @@ async def thread_main(path, proc):
 
 
 def thread_proc(path, proc):
+    console_log(get_log_level())
     aio.run(thread_main(path, proc))
 
 
@@ -379,14 +380,10 @@ def converter_proc(proc):
     logging.info(f'입력 디렉토리 =|{in_path}|')
 
     # 메인 쓰레드만이 시그널 등록을 할 수 있음
-    ready_cont()
     t_list = []
     logging.info(f'총 |{conf.path_count}|개의 디렉토리 모니터링')
     for i in range(conf.path_count):
         sub_path = os.path.join(in_path, str(i + 1))
-        # todo 2023.0726 by june1
-        #  - 추후 쓰레드에서 프로세스로 변경할 필요 있음
-        # t = Thread(target=thread_proc, args=(sub_path, proc), daemon=True)
         t = Process(target=thread_proc, args=(sub_path, proc), daemon=True)
         t_list.append(t)
         t.start()
