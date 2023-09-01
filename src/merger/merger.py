@@ -4,6 +4,7 @@ from time import sleep, time
 
 import PyPDF2
 from PyPDF2 import PdfFileReader, PdfFileWriter
+from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 
 from conf.conf import config as conf
@@ -12,10 +13,14 @@ from src.comm.log import console_log
 from src.comm.util import exec_command
 
 
+def r(d):
+    return round(d, 2)
+
+
 def get_task_info():
     # 작업 정보는 데이터베이스 혹은 starter 로부터 수신
     # 작업 고유번호를 갖고.. 매번 새로운 작업 정보를 수신
-    info = {
+    info1 = {
         'input': {
             'key': 'abcd',
             'count': 7,
@@ -52,22 +57,25 @@ def get_task_info():
                 },
                 {
                     'name': 'Size_spec',
-                    'coordi': (23.101, 57.041),
-                    'size': (149.301, 12.667),
+                    'coordi': (23.101, 63.678),
+                    # 'size': (149.301, 12.667),
+                    'size': (178, 18.203),
                     'rotate': 0,
                     'priority': 3,
                 },
                 {
                     'name': 'M_code',
                     'coordi': (168.541, 29.58),
-                    'size': (27.972, 5.365),
+                    # 'size': (27.972, 5.365),
+                    'size': (32, 8),
                     'rotate': 0,
                     'priority': 3,
                 },
                 {
                     'name': 'jabinfo',
                     'coordi': (213.336, 52.504),
-                    'size': (1.619, 23.858),
+                    # 'size': (1.619, 23.858),
+                    'size': (2.269, 24),
                     'rotate': 90,
                     'priority': 3,
                 },
@@ -78,7 +86,125 @@ def get_task_info():
             'size': (240, 80),
         }
     }
-    return info
+    info2 = {
+        'input': {
+            'key': 'afkn',
+            'count': 13,
+            'src': [
+                {
+                    'type_': 'img',
+                    'name': 'RU_기본도면',
+                    'coordi': (0, 0),
+                    'size': (120, 100),
+                    'rotate': 0,
+                    'priority': 1,
+                },
+                {
+                    'type_': 'img',
+                    'name': 'ProductName',
+                    'coordi': (3, 50.5),
+                    'size': (70, 10),
+                    'rotate': 0,
+                    'priority': 1,
+                },
+                {
+                    'type_': 'text',
+                    'name': 'Size_spec',
+                    'coordi': (5.5, 5.92),
+                    'size': (109, 13.4),
+                    'rotate': 0,
+                    'priority': 3,
+                },
+                {
+                    'type_': 'text',
+                    'name': 'Head_copy',
+                    'coordi': (4.3, 60.5),
+                    'size': (67.4, 7.3),
+                    'rotate': 0,
+                    'priority': 3,
+                },
+                {
+                    'type_': 'text',
+                    'name': 'M_code',
+                    'coordi': (79.5, 29.7),
+                    'size': (35, 9),
+                    'rotate': 0,
+                    'priority': 3,
+                },
+                {
+                    'type_': 'text',
+                    'name': 'Product_code',
+                    'coordi': (6.2, 72.83),
+                    'size': (19, 4.63),
+                    'rotate': 0,
+                    'priority': 3,
+                },
+                {
+                    'type_': 'text',
+                    'name': 'Seq',
+                    'coordi': (57, 71.5),
+                    'size': (15, 3.5),
+                    'rotate': 0,
+                    'priority': 3,
+                },
+                {
+                    'type_': 'text',
+                    'name': 'Sales',
+                    'coordi': (53, 76),
+                    'size': (18.8, 3),
+                    'rotate': 0,
+                    'priority': 3,
+                },
+                {
+                    'type_': 'text',
+                    'name': 'Form',
+                    'coordi': (84.8, 42.7),
+                    'size': (25, 4.25),
+                    'rotate': 0,
+                    'priority': 3,
+                },
+                {
+                    # 바코드의 경우 이미지 박스가 아닌 이미지 자체의 크기와 좌표를 사용
+                    'type_': 'bar',
+                    'name': '880856333945',
+                    'coordi': (34.3, 26.4),
+                    'size': (34, 13.5),
+                    'rotate': 0,
+                    'priority': 3,
+                },
+                {
+                    'type_': 'dmtx',
+                    'name': 'dmtx_russia_a',
+                    'coordi': (5.17, 24),
+                    'size': (21, 21),
+                    'rotate': 0,
+                    'priority': 3,
+                },
+                {
+                    'type_': 'dmtx',
+                    'name': 'dmtx_russia_b',
+                    'coordi': (95.5, 52.84),
+                    'size': (21, 21),
+                    'rotate': 0,
+                    'priority': 3,
+                },
+                {
+                    'type_': 'qr',
+                    'name': 'qr_russia_a',
+                    'coordi': (76.75, 52.7),
+                    'size': (16, 21),
+                    'rotate': 0,
+                    'priority': 3,
+                },
+            ]
+        },
+        'output': {
+            'name': 'RU_HK',
+            'size': (120, 100),
+        }
+
+    }
+    return info2
 
 
 def get_src_list(prefix, count):
@@ -147,12 +273,12 @@ def rotate_text(src, dst, degree):
 
 def merge_pdf(file_list, out_file, size):
     # 너비와 높이를 포인트 단위로 지정
-    scale = 2.83463
+    scale = mm
     width, height = size
-    width *= scale
-    height *= scale
+    # width *= scale
+    # height *= scale
     logging.info(f'높이=|{height}| 너비=|{width}| 밑바탕 생성')
-    c = canvas.Canvas(out_file, pagesize=(width, height))
+    c = canvas.Canvas(out_file, pagesize=(width * mm, height * mm))
     c.showPage()
     c.save()
 
@@ -172,12 +298,12 @@ def merge_pdf(file_list, out_file, size):
 
 
 def resize_data(src_list, info_list, size):
-    scale = 2.83463
     # 전체 이미지의 크기
     # 스케일 조정
     width, height = size
-    width *= scale
-    height *= scale
+    logging.info(f'전체 바탕의 크기=|{width, height}|')
+    # width *= scale
+    # height *= scale
 
     out_list = []
     for src in src_list:
@@ -192,35 +318,41 @@ def resize_data(src_list, info_list, size):
 
             infos = list(filter(lambda m: os.path.splitext(os.path.basename(m['name']))[0] == pure, info_list))
             if not infos:
-                logging.error(f'파일이 정보에 존재하지 않음, 파일=|{pure}|')
+                logging.error(f'파일 정보가 존재하지 않음, 파일=|{pure}|')
                 continue
 
             info = infos[0]
             # 사이즈 조정
             box_width, box_height = info['size']
-            box_width *= scale
-            box_height *= scale
+            # box_width *= scale
+            # box_height *= scale
+            logging.info(f'|{pure}| 박스 크기정보, |{r(box_width), r(box_height)}|')
+
             # 좌표
             box_x, box_y = info['coordi']
-            box_x *= scale
-            box_y *= scale
-            logging.info(f'|{pure}| 좌표정보, |{box_x, box_y}|')
+            # box_x *= scale
+            # box_y *= scale
+            logging.info(f'|{pure}| 박스 좌표정보, |{r(box_x), r(box_y)}|')
 
             if reader := PdfFileReader(file):
                 page = reader.getPage(0)
 
                 # 스케일 조정
                 ret = page.mediaBox.upperRight
-                logging.info(f'|{pure}| 크기정보, 이미지의 너비=|{ret[0]}| 높이=|{ret[1]}|')
-                img_width = float(ret[0])
-                img_height = float(ret[1])
+                img_width = r(float(ret[0]) / mm)
+                img_height = r(float(ret[1]) / mm)
                 img_x = box_x + (box_width - img_width) / 2
                 img_y = box_y + (box_height - img_height) / 2
+                logging.info(
+                    f'|{pure}| 크기정보, '
+                    f'실제로 불러온 이미지의 크기=|{img_width},{img_height}| '
+                    f'이미지박스의 크기=|{box_width},{box_height}| '
+                    f'실제로 이미지가 위치하는 좌표=|{img_x},{img_y}|')
 
                 # 여백 주기, 회전
-                l_margin = img_x - info.get('left_move', 0)
-                b_margin = int(height - img_y - img_height)
-                rotate = info['rotate']
+                l_margin = img_x
+                b_margin = r(float(height - img_y - img_height))
+                rotate = info.get('rotate', 0)
                 logging.info(f'|{pure}| 여백주기, 좌=|{l_margin}| 하=|{b_margin}| 회전=|{rotate}|')
 
                 # 변환된 결과물 생성
@@ -230,9 +362,9 @@ def resize_data(src_list, info_list, size):
                     '-sDEVICE=pdfwrite',
                     '-o', o_file,
                     '-dFIXEDMEDIA',
-                    f'-dDEVICEWIDTHPOINTS={width}',
-                    f'-dDEVICEHEIGHTPOINTS={height}',
-                    '-c', f'<</PageOffset [{l_margin} {b_margin}]>> setpagedevice',
+                    f'-dDEVICEWIDTHPOINTS={width * mm}',
+                    f'-dDEVICEHEIGHTPOINTS={height * mm}',
+                    '-c', f'<</PageOffset [{l_margin * mm} {b_margin * mm}]>> setpagedevice',
                     '-f', src
                 ]
                 exec_command(command)

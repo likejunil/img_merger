@@ -72,6 +72,12 @@ def test():
         json.dump(data, f, indent=4, ensure_ascii=False)
 
 
+def test_1():
+    path = "/System/Library/Fonts/Helvetica.ttc"
+
+    pass
+
+
 if __name__ == '__main__':
     # main()
-    test()
+    test_1()

@@ -7,7 +7,7 @@ from multiprocessing import Process
 from time import sleep
 from uuid import uuid4
 
-import qrcode
+import segno
 from PIL import Image
 from PyPDF2 import PdfFileReader
 from pylibdmtx.pylibdmtx import encode
@@ -18,11 +18,21 @@ from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 
 from conf.conf import config as conf
-from conf.constant import pdf, png, eps
+from conf.constant import pdf, eps
 from src.comm.comm import ready_cont, get_loop, get_log_level, tm
 from src.comm.log import console_log
 from src.comm.util import exec_command
 from src.converter.watcher import Watcher
+
+
+def register_font():
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    font_path = os.path.join(conf.font_path, 'Helvetica-Light.ttf')
+    pdfmetrics.registerFont(TTFont('Helvetica-Light', font_path))
+
+
+register_font()
 
 
 def change_ext(filename, ext=pdf):
@@ -41,6 +51,25 @@ def get_tmp_name(ext):
     tmp_file = f'{tmp_path}/{str(uuid4())}{ext}'
     logging.info(f'이미지 생성을 위한 임시파일=|{tmp_file}|')
     return tmp_file
+
+
+def to_pdf(src, dst):
+    command = [
+        'inkscape',
+        src,
+        f'--export-filename={dst}',
+    ]
+    exec_command(command)
+
+
+def png2svg(src, dst):
+    command = [
+        'inkscape',
+        src,
+        '--export-type=svg',
+        f'--export-filename={dst}'
+    ]
+    exec_command(command)
 
 
 def fit_image_to_pdf(src, dst):
@@ -69,15 +98,8 @@ def fit_image_to_eps(src, dst):
 
 
 def convert_scale(src, dst, size):
-    # scale = 2.83463
-    # 2.83463 을 곱하면 이미지 박스의 크기가 된다.
-    # 해당 이미지는 이미지 박스 안에 자리잡아야 한다.
-    # 정확한 이미지의 크기를 알 수 없을까?
-    scale = mm * 1.0
-    # to_width, to_height = size
-    # to_width, to_height = 47.33, 24.04
-    # to_width, to_height = 37.0, 13.5
-    to_width, to_height = 30.9, 11.0
+    scale = mm
+    to_width, to_height = size
     to_width, to_height = to_width * scale, to_height * scale
     with open(src, 'rb') as file:
         if reader := PdfFileReader(file):
@@ -148,11 +170,6 @@ def conv_png(filename):
     5. 파일 크기: PNG는 품질을 중요시하기 때문에, 같은 크기의 이미지를 JPEG와 비교하면 PNG 파일이 더 크다는 단점이 있습니다.
         - 그러나, 고해상도의 이미지를 웹에서 사용하거나 출력물을 만드는 데에는 PNG가 적합합니다.
     """
-
-    # img = Image.open(filename).convert('RGB')
-    # out = get_out_name(filename)
-    # img.save(out)
-    # return out
 
     # 이미지의 품질을 유지하기 위해 canvas 사용
     img = Image.open(filename)
@@ -254,54 +271,100 @@ def conv_bar(filename):
 
 
 def conv_qr(filename):
+    """
+    # https://www.keyence.co.kr/ss/products/auto_id/barcode_lecture/basic_2d/qr/
+    """
     with open(filename, "rt") as f:
-        data = f.read()
-        qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_H, box_size=10, border=4)
-        qr.add_data(data)
-        qr.make(fit=True)
-        img = qr.make_image(fill='black', back_color='white')
-        out_file = change_ext(filename, png)
-        img.save(out_file)
+        json_data = json.load(f)
+        content = json_data.get('content')
+        width, height = json_data.get('width'), json_data.get('height')
+        logging.info(f'QR-코드 생성을 위한 정보=|{json_data}|')
+
+        tmp_file = get_tmp_name(pdf)
+        qr = segno.make(content)
+        qr.save(tmp_file, kind="pdf")
+        out_file = get_out_name(filename)
+        convert_scale(tmp_file, out_file, (width, height))
+        os.remove(tmp_file)
         return out_file
 
 
 def conv_dmtx(filename):
+    """
+    # https://www.keyence.co.kr/ss/products/auto_id/barcode_lecture/basic_2d/datamatrix/
+    # ECC200은 최신 버전의 Data Matrix 코드
+    # 코드 크기는 10 x 10셀에서 144 x 144셀까지 24가지(직사각형의 6가지 크기 포함).
+    """
     with open(filename, "rt") as f:
-        data = f.read()
-        encoded = encode(data.encode())
+        json_data = json.load(f)
+        width, height = json_data.get('width'), json_data.get('height')
+        logging.info(f'Data-Matrix 생성을 위한 정보=|{json_data}|')
+        encoded = encode(json_data.get('content').encode('utf8'))
         img = Image.frombytes('RGB', (encoded.width, encoded.height), encoded.pixels)
-        out_file = change_ext(filename, png)
-        img.save(out_file)
+
+        tmp_file = get_tmp_name(pdf)
+        img.save(tmp_file)
+        out_file = get_out_name(filename)
+        convert_scale(tmp_file, out_file, (width, height))
+        os.remove(tmp_file)
         return out_file
 
 
 def generate_pdf(data, filename):
-    """
-    data = {
-        'font': '',
-        'size': 14,
-        'rotate': 0,
-        'content': '',
-        'size': [149.301, 12.667],
-    }
-    """
-    # tmp_pdf = get_tmp_name(pdf)
+    def set_color(c_, color_):
+        r, g, b = 0, 0, 0
+        if color_ == 'white':
+            r, g, b = 0.9, 0.9, 0.9
+            # r, g, b = 1, 1, 1
+        logging.info(f'텍스트 컬러 변경=|{r},{g},{b}|')
+        c_.setFillColorRGB(r, g, b)
+
     logging.info(f'텍스트 삽입=|{data}| 임시 파일=|{filename}|')
     size = list(data.get('size'))
     width, height = size
     logging.info(f'너비=|{width}| 높이=|{height}| 회전=|{data.get("rotate")}| '
                  f'폰트=|{data.get("font")}| 폰트_사이즈=|{data.get("font-size")}|')
 
-    c = canvas.Canvas(filename, pagesize=(width * mm, 2 * height * mm))
-    c.setFont(data.get('font'), float(data.get('font-size')))
+    # 캔버스 생성
+    c = canvas.Canvas(filename, pagesize=(width * mm, height * mm))
+    # c.line(0, 0, width * mm, 0)
+    # c.line(0, 0, 0, height * mm)
+    # c.rect(0, 0, width * mm, height * mm)
+
+    # 폰트 설정
+    font_size = float(data.get('font-size'))
+    c.setFont(data.get('font'), font_size)
+    if color := data.get('color'):
+        set_color(c, color)
+    # todo 2023.0829 by june1
+    #  - 왜 1pt 가 0.3528 mm 가 아닌걸까?
+    #  - ratio = 0.3528
+    ratio = 0.25
+    font_size_mm = font_size * ratio
+
+    # 텍스트 정렬
+    align = data.get('align')
+    valign = data.get('valign')
+    logging.info(f'텍스트 정렬, 상하=|{valign}| 좌우=|{align}|')
 
     # 데카르트 좌표(좌하단, 즉 원점으로부터..)
     if degree := data.get('rotate'):
         c.rotate(degree)
         c.drawString(height / 2 * mm, -width * mm, data.get('content'))
-        # c.drawString()
     else:
-        c.drawCentredString(width / 2 * mm, height / 2 * mm, data.get('content'))
+        if valign == 'top':
+            y = height - font_size_mm
+        elif valign == 'bottom':
+            y = 0
+        else:
+            y = round((height / 2) - (font_size_mm / 2), 2)
+
+        if align == 'center':
+            c.drawCentredString(round(width / 2, 2) * mm, y * mm, data.get('content'))
+        elif align == 'left':
+            c.drawString(x=0, y=y * mm, text=data.get('content'))
+        elif align == 'right':
+            c.drawRightString(x=width * mm, y=y * mm, text=data.get('content'))
     c.save()
 
 
@@ -360,6 +423,7 @@ async def do_convert(watcher):
 
 
 async def thread_main(path, proc):
+    console_log(get_log_level())
     loop = get_loop()
     watcher = Watcher(path, proc)
     t1 = loop.create_task(watcher.run_proc())
@@ -384,9 +448,6 @@ def converter_proc(proc):
     logging.info(f'총 |{conf.path_count}|개의 디렉토리 모니터링')
     for i in range(conf.path_count):
         sub_path = os.path.join(in_path, str(i + 1))
-        # todo 2023.0726 by june1
-        #  - 추후 쓰레드에서 프로세스로 변경할 필요 있음
-        # t = Thread(target=thread_proc, args=(sub_path, proc), daemon=True)
         t = Process(target=thread_proc, args=(sub_path, proc), daemon=True)
         t_list.append(t)
         t.start()

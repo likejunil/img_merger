@@ -7,6 +7,7 @@ src_path = 'src_path'
 log_path = 'log_path'
 data_path = 'data_path'
 pid_path = 'pid_path'
+font_path = 'font_path'
 yaml_file = 'yaml_file'
 
 # -------------------
@@ -41,3 +42,4 @@ bar_type = 'bar_type'
 pdf = '.pdf'
 png = '.png'
 eps = '.eps'
+svg = '.svg'
