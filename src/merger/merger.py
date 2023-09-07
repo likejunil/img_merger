@@ -97,7 +97,7 @@ def get_task_info():
                     'coordi': (0, 0),
                     'size': (120, 100),
                     'rotate': 0,
-                    'priority': 1,
+                    'priority': 0,
                 },
                 {
                     'type_': 'img',
@@ -271,12 +271,9 @@ def rotate_text(src, dst, degree):
             pdf_writer.write(pdf_output_file)
 
 
-def merge_pdf(file_list, out_file, size):
+def merge_pdf(file_list, out_file, size, info):
     # 너비와 높이를 포인트 단위로 지정
-    scale = mm
     width, height = size
-    # width *= scale
-    # height *= scale
     logging.info(f'높이=|{height}| 너비=|{width}| 밑바탕 생성')
     c = canvas.Canvas(out_file, pagesize=(width * mm, height * mm))
     c.showPage()
@@ -285,7 +282,19 @@ def merge_pdf(file_list, out_file, size):
     base_reader = PdfFileReader(out_file, "rb")
     base_page = base_reader.getPage(0)
 
-    for f in file_list:
+    # 정렬 작업부터..
+    src_list = info.get('input').get('src')
+
+    def find_priority(name):
+        for src_dict in src_list:
+            if src_dict.get('name') in name:
+                return src_dict.get('priority')
+        return 99
+
+    files = [{'name': file, 'priority': find_priority(file)} for file in file_list]
+
+    for f_dict in sorted(files, key=lambda x: x['priority']):
+        f = f_dict.get('name')
         reader = PdfFileReader(open(f, "rb"))
         page = reader.getPage(0)
         logging.info(f'|{f}| 너비=|{page.mediaBox.getWidth()}| 높이=|{page.mediaBox.getHeight()}|')
@@ -302,8 +311,6 @@ def resize_data(src_list, info_list, size):
     # 스케일 조정
     width, height = size
     logging.info(f'전체 바탕의 크기=|{width, height}|')
-    # width *= scale
-    # height *= scale
 
     out_list = []
     for src in src_list:
@@ -324,14 +331,10 @@ def resize_data(src_list, info_list, size):
             info = infos[0]
             # 사이즈 조정
             box_width, box_height = info['size']
-            # box_width *= scale
-            # box_height *= scale
             logging.info(f'|{pure}| 박스 크기정보, |{r(box_width), r(box_height)}|')
 
             # 좌표
             box_x, box_y = info['coordi']
-            # box_x *= scale
-            # box_y *= scale
             logging.info(f'|{pure}| 박스 좌표정보, |{r(box_x), r(box_y)}|')
 
             if reader := PdfFileReader(file):
@@ -405,7 +408,7 @@ def merger_proc():
             # 이미지 정보 출력
             data_info(src_list)
             out_list = resize_data(src_list, info_list, size)
-            merge_pdf(out_list, out_file, size)
+            merge_pdf(out_list, out_file, size, info)
 
             # todo 2023.0710 by june1
             #  - 지금은 오직 한 건만 진행..

@@ -28,8 +28,11 @@ from src.converter.watcher import Watcher
 def register_font():
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
+
     font_path = os.path.join(conf.font_path, 'Helvetica-Light.ttf')
     pdfmetrics.registerFont(TTFont('Helvetica-Light', font_path))
+    font_path = os.path.join(conf.font_path, 'HankookTTFBold.ttf')
+    pdfmetrics.registerFont(TTFont('HankookTTFBold', font_path))
 
 
 register_font()
@@ -97,8 +100,7 @@ def fit_image_to_eps(src, dst):
     exec_command(command)
 
 
-def convert_scale(src, dst, size):
-    scale = mm
+def convert_scale(src, dst, size, scale=mm):
     to_width, to_height = size
     to_width, to_height = to_width * scale, to_height * scale
     with open(src, 'rb') as file:
@@ -295,11 +297,14 @@ def conv_dmtx(filename):
     # ECC200은 최신 버전의 Data Matrix 코드
     # 코드 크기는 10 x 10셀에서 144 x 144셀까지 24가지(직사각형의 6가지 크기 포함).
     """
-    with open(filename, "rt") as f:
-        json_data = json.load(f)
-        width, height = json_data.get('width'), json_data.get('height')
-        logging.info(f'Data-Matrix 생성을 위한 정보=|{json_data}|')
-        encoded = encode(json_data.get('content').encode('utf8'))
+    with open(filename, "rb") as f:
+        # json_data = json.load(f)
+        # width, height = json_data.get('width'), json_data.get('height')
+        # logging.info(f'Data-Matrix 생성을 위한 정보=|{json_data}|')
+        # encoded = encode(json_data.get('content').encode('utf8'))
+        width, height = 22, 22
+        data = f.read()
+        encoded = encode(data)
         img = Image.frombytes('RGB', (encoded.width, encoded.height), encoded.pixels)
 
         tmp_file = get_tmp_name(pdf)
@@ -310,14 +315,29 @@ def conv_dmtx(filename):
         return out_file
 
 
+def get_text_width(filename):
+    tmp_eps = get_tmp_name(eps)
+    fit_image_to_eps(filename, tmp_eps)
+    tmp_pdf = get_tmp_name(pdf)
+    fit_image_to_pdf(tmp_eps, tmp_pdf)
+    # os.remove(tmp_eps)
+    with open(tmp_pdf, 'rb') as f:
+        if reader := PdfFileReader(f):
+            page = reader.getPage(0)
+            ret = page.mediaBox.upperRight
+            img_width = round(float(ret[0]) / mm)
+    # os.remove(tmp_pdf)
+    return img_width
+
+
 def generate_pdf(data, filename):
-    def set_color(c_, color_):
+    def set_color(cv_, color_):
         r, g, b = 0, 0, 0
         if color_ == 'white':
             r, g, b = 0.9, 0.9, 0.9
             # r, g, b = 1, 1, 1
         logging.info(f'텍스트 컬러 변경=|{r},{g},{b}|')
-        c_.setFillColorRGB(r, g, b)
+        cv_.setFillColorRGB(r, g, b)
 
     logging.info(f'텍스트 삽입=|{data}| 임시 파일=|{filename}|')
     size = list(data.get('size'))
@@ -332,15 +352,49 @@ def generate_pdf(data, filename):
     # c.rect(0, 0, width * mm, height * mm)
 
     # 폰트 설정
+    content = data.get('content')
+    font = data.get('font')
     font_size = float(data.get('font-size'))
-    c.setFont(data.get('font'), font_size)
     if color := data.get('color'):
         set_color(c, color)
+
+    to = c.beginText()
+    to.setFont(font, font_size)
+    # c.setFont(font, font_size)
+
     # todo 2023.0829 by june1
     #  - 왜 1pt 가 0.3528 mm 가 아닌걸까?
     #  - ratio = 0.3528
     ratio = 0.25
     font_size_mm = font_size * ratio
+
+    text_width = c.stringWidth(content, font, font_size) / 2.85
+    logging.info(f'텍스트의 너비=|{text_width}| 텍스트박스의 너비=|{width}|')
+    need_resize_flag = False
+    old_width = width
+    if text_width > width:
+        """
+        dec_step = -1.0
+        tmp_name = get_tmp_name(pdf)
+        logging.info(f'텍스트의 너비를 구하기 위한 임시파일=|{tmp_name}|')
+        c_ = canvas.Canvas(tmp_name, pagesize=(width * mm, height * mm))
+        to_ = c_.beginText()
+        to_.setFont(font, font_size)
+        to_.setCharSpace(dec_step)
+        # to_.setHorizScale(90)
+        # to_.setWordSpace(-2.5)
+        to_.setTextOrigin(0, 0)
+        to_.textLine(content)
+        c_.drawText(to_)
+        c_.save()
+        text_width = get_text_width(tmp_name)
+        # os.remove(tmp_name)
+        logging.info(f'텍스트의 너비=|{text_width}| 텍스트박스의 너비=|{width}| 적용자간=|{dec_step}|')
+        return text_width
+        """
+        need_resize_flag = True
+        width = text_width
+        c.setPageSize((width * mm, height * mm))
 
     # 텍스트 정렬
     align = data.get('align')
@@ -350,7 +404,7 @@ def generate_pdf(data, filename):
     # 데카르트 좌표(좌하단, 즉 원점으로부터..)
     if degree := data.get('rotate'):
         c.rotate(degree)
-        c.drawString(height / 2 * mm, -width * mm, data.get('content'))
+        c.drawString(height / 2 * mm, -width * mm, content)
     else:
         if valign == 'top':
             y = height - font_size_mm
@@ -360,12 +414,25 @@ def generate_pdf(data, filename):
             y = round((height / 2) - (font_size_mm / 2), 2)
 
         if align == 'center':
-            c.drawCentredString(round(width / 2, 2) * mm, y * mm, data.get('content'))
+            # c.drawCentredString(round(width / 2, 2) * mm, y * mm, content)
+            to.setTextOrigin(round((width - text_width) / 2, 2) * mm, y * mm)
         elif align == 'left':
-            c.drawString(x=0, y=y * mm, text=data.get('content'))
+            # c.drawString(x=0, y=y * mm, text=content)
+            to.setTextOrigin(0, y * mm)
         elif align == 'right':
-            c.drawRightString(x=width * mm, y=y * mm, text=data.get('content'))
+            # c.drawRightString(x=width * mm, y=y * mm, text=content)
+            to.setTextOrigin((width - text_width) * mm, y * mm)
+
+    to.textLine(content)
+    c.drawText(to)
     c.save()
+
+    if need_resize_flag:
+        logging.info(f'텍스트의 폭 축소 적용')
+        tmp_name = get_tmp_name(pdf)
+        convert_scale(filename, tmp_name, (old_width, height))
+        os.remove(filename)
+        os.rename(tmp_name, filename)
 
 
 def conv_text(filename):
@@ -460,6 +527,10 @@ def converter_proc(proc):
         t.terminate()
     for t in t_list:
         t.join()
+
+
+def test():
+    pass
 
 
 if __name__ == '__main__':
