@@ -4,7 +4,7 @@ src_data:
 
 in_data:
   path: "data/in_files"
-  ext: [ "jpg", "jpeg", "png", "eps", "bar", "qr", "dmtx", "text" ]
+  ext: [ "jpg", "jpeg", "png", "eps", "pdf", "bar", "qr", "dmtx", "text" ]
   path_count: 9
 
 barcode:

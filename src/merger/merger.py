@@ -202,9 +202,126 @@ def get_task_info():
             'name': 'RU_HK',
             'size': (120, 100),
         }
-
     }
-    return info2
+    info3 = {
+        'input': {
+            'key': 'appl',
+            'count': 13,
+            'src': [
+                {
+                    'type_': 'img',
+                    'name': 'EU_기본도면_2',
+                    'coordi': (0, 0),
+                    'size': (86, 173),
+                    'rotate': 0,
+                    'priority': 0,
+                },
+                {
+                    'type_': 'img',
+                    'name': 'EU_HK_TH31+_productName',
+                    'coordi': (4, 18.5),
+                    'size': (78, 12.6),
+                    'rotate': 0,
+                    'priority': 1,
+                },
+                {
+                    'type_': 'text',
+                    'name': 'Size_spec',
+                    'coordi': (29.05, 33.2),
+                    'size': (53.1, 6.9),
+                    'rotate': 0,
+                    'priority': 3,
+                },
+                {
+                    'type_': 'text',
+                    'name': 'Product_code',
+                    'coordi': (3.46, 33.2),
+                    'size': (22, 6.8),
+                    'rotate': 0,
+                    'priority': 3,
+                },
+                {
+                    'type_': 'text',
+                    'name': 'M_code_S_head',
+                    'coordi': (21.7, 41),
+                    'size': (5.5, 5.73),
+                    'rotate': 0,
+                    'priority': 3,
+                },
+                {
+                    'type_': 'text',
+                    'name': 'M_code_S',
+                    'coordi': (27, 41),
+                    'size': (21.8, 5.73),
+                    'rotate': 0,
+                    'priority': 3,
+                },
+                {
+                    'type_': 'text',
+                    'name': 'M_code_A_head',
+                    'coordi': (55, 52),
+                    'size': (5.5, 5.73),
+                    'rotate': 0,
+                    'priority': 3,
+                },
+                {
+                    'type_': 'text',
+                    'name': 'M_code_A',
+                    'coordi': (60.45, 52),
+                    'size': (21.8, 5.73),
+                    'rotate': 0,
+                    'priority': 3,
+                },
+                {
+                    'type_': 'text',
+                    'name': 'Form',
+                    'coordi': (4.3, 167.4),
+                    'size': (25, 4.25),
+                    'rotate': 0,
+                    'priority': 3,
+                },
+                {
+                    # 바코드의 경우 이미지 박스가 아닌 이미지 자체의 크기와 좌표를 사용
+                    'type_': 'bar',
+                    'name': '880856333945',
+                    'coordi': (22, 46.3),
+                    'size': (24, 9.5),
+                    'rotate': 0,
+                    'priority': 3,
+                },
+                {
+                    # 바코드의 경우 이미지 박스가 아닌 이미지 자체의 크기와 좌표를 사용
+                    'type_': 'bar',
+                    'name': '880856333946',
+                    'coordi': (55, 41.5),
+                    'size': (24, 9.5),
+                    'rotate': 0,
+                    'priority': 3,
+                },
+                {
+                    'type_': 'img',
+                    'name': 'eugrade',
+                    'coordi': (4, 57.044),
+                    'size': (78, 110),
+                    'rotate': 0,
+                    'priority': 3,
+                },
+                {
+                    'type_': 'qr',
+                    'name': 'qr_eu_a',
+                    'coordi': (4.7, 42),
+                    'size': (10.6, 10.6),
+                    'rotate': 0,
+                    'priority': 3,
+                },
+            ]
+        },
+        'output': {
+            'name': 'EU_HK',
+            'size': (86, 173),
+        }
+    }
+    return info3
 
 
 def get_src_list(prefix, count):

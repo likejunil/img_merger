@@ -61,7 +61,8 @@ def get_out_name(filename):
 
 def get_tmp_name(ext):
     tmp_path = os.path.join(conf.root_path, conf.data_path, 'tmp_files')
-    tmp_file = f'{tmp_path}/{str(uuid4())}{ext}'
+    # tmp_file = f'{tmp_path}/{str(uuid4())}{ext}'
+    tmp_file = os.path.join(f'{tmp_path}', f'{str(uuid4())}{ext}')
     logging.info(f'이미지 생성을 위한 임시파일=|{tmp_file}|')
     return tmp_file
 
@@ -226,6 +227,13 @@ def conv_eps(filename):
     return pdf_file
 
 
+def conv_pdf(filename):
+    pdf_file = get_out_name(filename)
+    os.rename(filename, pdf_file)
+    logging.info(f'pdf 파일 옮기기, 원본=|{filename}| 대상=|{pdf_file}|')
+    return pdf_file
+
+
 def generate_barcode(number, out_file):
     width, height = 240, 120
     barcode = eanbc.Ean13BarcodeWidget(number)
@@ -353,7 +361,10 @@ def generate_pdf(data, filename):
         r, g, b = 0, 0, 0
         if color_ == 'white':
             r, g, b = 0.99, 0.99, 0.99
-            # r, g, b = 1, 1, 1
+        elif color_ == 'orange':
+            # ff7f00
+            r, g, b = 0xff/0xff, 0x7f/0xff, 0x00/0xff
+
         logging.info(f'텍스트 컬러 변경=|{r},{g},{b}|')
         cv_.setFillColorRGB(r, g, b)
 
@@ -477,6 +488,7 @@ def convert(filename):
         'jpeg': conv_jpg,
         'png': conv_png,
         'eps': conv_eps,
+        'pdf': conv_pdf,
         'bar': conv_bar,
         'qr': conv_qr,
         'dmtx': conv_dmtx,
@@ -586,7 +598,10 @@ def test():
     generate_and_print(data)
 
 
+def test_2():
+    print('hi')
+
+
 if __name__ == '__main__':
     console_log(get_log_level())
-    # converter_proc(convert)
-    test()
+    converter_proc(convert)
