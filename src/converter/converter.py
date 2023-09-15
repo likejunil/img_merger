@@ -31,8 +31,18 @@ def register_font():
 
     font_path = os.path.join(conf.font_path, 'Helvetica-Light.ttf')
     pdfmetrics.registerFont(TTFont('Helvetica-Light', font_path))
+    # font_path = os.path.join(conf.font_path, 'HankookTTFBold.ttf')
+    # pdfmetrics.registerFont(TTFont('HankookTTFBold', font_path))
+    # font_path = os.path.join(conf.font_path, 'HankookTTFLight.ttf')
+    # pdfmetrics.registerFont(TTFont('HankookTTFLight', font_path))
+    # font_path = os.path.join(conf.font_path, 'HankookTTFRegular.ttf')
+    pdfmetrics.registerFont(TTFont('HankookTTFRegular', font_path))
     font_path = os.path.join(conf.font_path, 'HankookTTFBold.ttf')
     pdfmetrics.registerFont(TTFont('HankookTTFBold', font_path))
+    font_path = os.path.join(conf.font_path, 'HankookTTFLight.ttf')
+    pdfmetrics.registerFont(TTFont('HankookTTFLight', font_path))
+    font_path = os.path.join(conf.font_path, 'HankookTTFRegular.ttf')
+    pdfmetrics.registerFont(TTFont('HankookTTFRegular', font_path))
 
 
 register_font()
@@ -219,6 +229,10 @@ def conv_eps(filename):
 def generate_barcode(number, out_file):
     width, height = 240, 120
     barcode = eanbc.Ean13BarcodeWidget(number)
+    # 바코드 속성 설정
+    barcode.barHeight = 20 * mm
+    barcode.fontSize = 11
+
     c = canvas.Canvas(out_file, pagesize=(width, height))
     d = Drawing(width, height)
     d.add(barcode)
@@ -303,7 +317,11 @@ def conv_dmtx(filename):
         # logging.info(f'Data-Matrix 생성을 위한 정보=|{json_data}|')
         # encoded = encode(json_data.get('content').encode('utf8'))
         width, height = 22, 22
-        data = f.read()
+        # data = f.read()
+        # data = b'\xe8' + f.read()
+        # data = b'\f' + f.read()
+        # data = b'\x0f' + f.read()
+        data = b'\x1d' + f.read()
         encoded = encode(data)
         img = Image.frombytes('RGB', (encoded.width, encoded.height), encoded.pixels)
 
@@ -334,7 +352,7 @@ def generate_pdf(data, filename):
     def set_color(cv_, color_):
         r, g, b = 0, 0, 0
         if color_ == 'white':
-            r, g, b = 0.9, 0.9, 0.9
+            r, g, b = 0.99, 0.99, 0.99
             # r, g, b = 1, 1, 1
         logging.info(f'텍스트 컬러 변경=|{r},{g},{b}|')
         cv_.setFillColorRGB(r, g, b)
@@ -530,9 +548,45 @@ def converter_proc(proc):
 
 
 def test():
-    pass
+    from treepoem import generate_barcode
+    from PIL import Image
+
+    # def generate_and_print(gtin_, serial_number_, expiry_date_, batch_number_):
+    def generate_and_print(data_):
+        # Generate datamatrix
+        datamatrix = generate_barcode(
+            barcode_type='gs1datamatrix',
+            # data=f"(01){gtin_}(21){serial_number_}(17){expiry_date_}(10){batch_number_}",
+            data=data_,
+            options={"parsefnc": True, "format": "square", "version": "36x36"}
+        )
+
+        # Resize datamatrix to desired size
+        dm_size_px = (120, 120)
+        datamatrix = datamatrix.resize(dm_size_px, Image.NEAREST)
+
+        # Create white picture
+        picture_size_px = (200, 200)
+        picture = Image.new('L', picture_size_px, color='white')
+
+        # Position the datamatrix
+        barcode_position_px = (40, 40)
+        picture.paste(datamatrix, barcode_position_px)
+
+        # Save the image
+        picture.save("datamatrix.png")
+
+    gtin = "01234567890128"
+    serial_number = "01234567891011"
+    expiry_date = "250731"
+    batch_number = "DATAMATRIXTEST"
+    data = "(01)08808563401119(21)5&4TOm5+.Uw'l(91)EE09(92)e/RE1wbSABu6LdbXkBRmOWB2rw1EU6NjEYshQQ2MiAs="
+
+    # generate_and_print(gtin, serial_number, expiry_date, batch_number)
+    generate_and_print(data)
 
 
 if __name__ == '__main__':
     console_log(get_log_level())
-    converter_proc(convert)
+    # converter_proc(convert)
+    test()
