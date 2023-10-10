@@ -43,3 +43,10 @@ pdf = '.pdf'
 png = '.png'
 eps = '.eps'
 svg = '.svg'
+
+# -------------------
+# os_name
+# -------------------
+os_window = "Windows OS"
+os_linux = "Linux OS"
+os_mac = "Mac OS"

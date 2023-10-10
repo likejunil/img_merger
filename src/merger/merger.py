@@ -17,6 +17,18 @@ def r(d):
     return round(d, 2)
 
 
+"""
+이미지 박스 내에 이미지가 위치하는 방법
+coordi 성분의 3번째 값
+만약 생략되었다면 디폴트 5
++---------+
+| 1     2 |
+|    5    |
+| 4     3 |
++---------+
+"""
+
+
 def get_task_info():
     # 작업 정보는 데이터베이스 혹은 starter 로부터 수신
     # 작업 고유번호를 갖고.. 매번 새로운 작업 정보를 수신
@@ -196,6 +208,7 @@ def get_task_info():
                     'rotate': 0,
                     'priority': 3,
                 },
+
             ]
         },
         'output': {
@@ -319,9 +332,190 @@ def get_task_info():
         'output': {
             'name': 'EU_HK',
             'size': (86, 173),
-        }
+        },
     }
-    return info3
+    info4 = {
+        'input': {
+            'key': 'yell',
+            'count': 20,
+            'src': [
+                {
+                    'type_': 'img',
+                    'name': 'GLB_G3_기본도안',
+                    'coordi': (0, 0),
+                    'size': (240, 80),
+                    'rotate': 0,
+                    'priority': 0,
+                },
+                {
+                    'type_': 'img',
+                    'name': 'HK_K127B_productName',
+                    'coordi': (38.37, 30),
+                    'size': (144, 27),
+                    'rotate': 0,
+                    'rate': 130.0,
+                    'priority': 99,
+                },
+                {
+                    'type_': 'img',
+                    'name': 'HK_K127B_image1',
+                    'coordi': (35, 21),
+                    'size': (75, 40.5),
+                    'rotate': 0,
+                    'rate': 83.0,
+                    'priority': 1,
+                },
+                {
+                    'type_': 'img',
+                    'name': 'HK_K127B_image2',
+                    'coordi': (35, 3, 3),
+                    'size': (54.3, 18),
+                    'rotate': 0,
+                    'rate': 69.854,
+                    'priority': 1,
+                },
+                {
+                    'type_': 'img',
+                    'name': 'HANKOOK_logo_hori',
+                    'coordi': (87, 3),
+                    'size': (95, 18),
+                    'rotate': 0,
+                    'priority': 99,
+                },
+                {
+                    'type_': 'img',
+                    'name': 'HANKOOK_logo_verti',
+                    'coordi': (11, 3),
+                    'size': (17, 74),
+                    'rotate': 0,
+                    'priority': 99,
+                },
+                {
+                    'type_': 'img',
+                    'name': 'SPACE_1',
+                    'coordi': (0, 0),
+                    'size': (35, 21),
+                    'rotate': 0,
+                    'priority': 2,
+                },
+                {
+                    'type_': 'img',
+                    'name': 'SPACE_2',
+                    'coordi': (0, 0),
+                    'size': (89.3, 3),
+                    'rotate': 0,
+                    'priority': 2,
+                },
+                {
+                    'type_': 'img',
+                    'name': 'LINE_hori',
+                    'coordi': (35.1, 61.5),
+                    'size': (147, 0.2),
+                    'rotate': 0,
+                    'priority': 99,
+                },
+                {
+                    'type_': 'img',
+                    'name': 'LINE_verti',
+                    'coordi': (35.1, 21),
+                    'size': (0.2, 56),
+                    'rotate': 0,
+                    'priority': 99,
+                },
+                {
+                    'type_': 'img',
+                    'name': 'HK_K127B_picto',
+                    'coordi': (183.3, 3),
+                    'size': (32.42, 40.94),
+                    'rotate': 0,
+                    'rate': 102.0,
+                    'priority': 99,
+                },
+                {
+                    'type_': 'text',
+                    'name': 'Size_spec_1',
+                    'coordi': (37, 65.2),
+                    'size': (140, 14),
+                    'rotate': 0,
+                    'priority': 99,
+                },
+                {
+                    'type_': 'text',
+                    'name': 'Size_spec_2',
+                    'coordi': (29.5, 4),
+                    'size': (44.6, 5.85),
+                    'rotate': 90,
+                    'font_size': 16,
+                    'priority': 99,
+                },
+                {
+                    'type_': 'text',
+                    'name': 'Head_copy',
+                    'coordi': (39, 22),
+                    'size': (140, 8.5),
+                    'rotate': 0,
+                    'priority': 99,
+                },
+                {
+                    'type_': 'text',
+                    'name': 'Product_code',
+                    'coordi': (29.3, 55.7),
+                    'size': (21, 6.2),
+                    'rotate': 90,
+                    'font_size': 16,
+                    'priority': 99,
+                },
+                {
+                    'type_': 'text',
+                    'name': 'M_code_1',
+                    'coordi': (182, 48.4),
+                    'size': (34.6, 8.3),
+                    'rotate': 0,
+                    'priority': 99,
+                },
+                {
+                    'type_': 'text',
+                    'name': 'M_code_2',
+                    'coordi': (3.6, 3.6),
+                    'size': (44, 9.5),
+                    'rotate': 90,
+                    'font_size': 24,
+                    'priority': 99,
+                },
+                {
+                    'type_': 'bar',
+                    'name': '880856333946',
+                    'coordi': (178.8, 61.5),
+                    # 'size': (31.4, 11.7),
+                    'size': (40, 15.5),
+                    'rotate': 0,
+                    'priority': 99,
+                },
+                {
+                    'type_': 'text',
+                    'name': 'Form',
+                    'coordi': (185.3, 57.3),
+                    'size': (27.7, 2.8),
+                    'rotate': 0,
+                    'priority': 99,
+                },
+                {
+                    'type_': 'text',
+                    'name': 'Jobinfo',
+                    'coordi': (3.5, 56.5),
+                    'size': (20.3, 1.85),
+                    'rotate': 90,
+                    'font_size': 5,
+                    'priority': 99,
+                },
+            ]
+        },
+        'output': {
+            'name': 'GLB_HK',
+            'size': (240, 80),
+        },
+    }
+    return info4
 
 
 def get_src_list(prefix, count):
@@ -431,7 +625,7 @@ def resize_data(src_list, info_list, size):
 
     out_list = []
     for src in src_list:
-        with open(src, 'rb') as file:
+        with (open(src, 'rb') as file):
             # src 의 형태
             # |_____|___________________________|___________|____|
             # |abcd_|HK_V S1 EVO2 SUV HRS_image1|_095805.964|.pdf|
@@ -451,18 +645,53 @@ def resize_data(src_list, info_list, size):
             logging.info(f'|{pure}| 박스 크기정보, |{r(box_width), r(box_height)}|')
 
             # 좌표
-            box_x, box_y = info['coordi']
-            logging.info(f'|{pure}| 박스 좌표정보, |{r(box_x), r(box_y)}|')
+            if len(info['coordi']) == 2:
+                (box_x, box_y), coordi = info['coordi'], 5
+            elif len(info['coordi']) == 3:
+                box_x, box_y, coordi = info['coordi']
+            else:
+                logging.error(f'좌표 정보 부정확, |{info["coordi"]}|')
+                continue
+            if (rotate := info.get('rotate', 0)) == 90:
+                if vlign := info.get('vlign', 'top'):
+                    font_size = info.get('font_size', 0) * 0.25
+                    move = (box_height - font_size) / 2
+                    if vlign == 'top':
+                        box_x -= move
+                    elif vlign == 'bottom':
+                        box_x += move
+                    else:
+                        pass
+                box_y += (box_width - box_height)
+                coordi = 1
+            logging.info(f'|{pure}| 박스 좌표정보, |{r(box_x), r(box_y), coordi}|')
+
+            # 스케일
+            scale = round(info.get('rate', 100) / 100.0, 2)
+            logging.info(f'|{pure}| 확대축소 정보, |{scale}|')
 
             if reader := PdfFileReader(file):
                 page = reader.getPage(0)
 
                 # 스케일 조정
                 ret = page.mediaBox.upperRight
-                img_width = r(float(ret[0]) / mm)
-                img_height = r(float(ret[1]) / mm)
-                img_x = box_x + (box_width - img_width) / 2
-                img_y = box_y + (box_height - img_height) / 2
+                img_width = r(float(ret[0]) / mm) * scale
+                img_height = r(float(ret[1]) / mm) * scale
+                if coordi == 5:
+                    img_x = box_x + (box_width - img_width) / 2
+                    img_y = box_y + (box_height - img_height) / 2
+                elif coordi == 1:
+                    img_x = box_x
+                    img_y = box_y
+                elif coordi == 2:
+                    img_x = box_x + box_width - img_width
+                    img_y = box_y
+                elif coordi == 3:
+                    img_x = box_x + box_width - img_width
+                    img_y = box_y + box_height - img_height
+                elif coordi == 4:
+                    img_x = box_x
+                    img_y = box_y + box_height - img_height
                 logging.info(
                     f'|{pure}| 크기정보, '
                     f'실제로 불러온 이미지의 크기=|{img_width},{img_height}| '
@@ -472,7 +701,6 @@ def resize_data(src_list, info_list, size):
                 # 여백 주기, 회전
                 l_margin = img_x
                 b_margin = r(float(height - img_y - img_height))
-                rotate = info.get('rotate', 0)
                 logging.info(f'|{pure}| 여백주기, 좌=|{l_margin}| 하=|{b_margin}| 회전=|{rotate}|')
 
                 # 변환된 결과물 생성
@@ -484,7 +712,8 @@ def resize_data(src_list, info_list, size):
                     '-dFIXEDMEDIA',
                     f'-dDEVICEWIDTHPOINTS={width * mm}',
                     f'-dDEVICEHEIGHTPOINTS={height * mm}',
-                    '-c', f'<</PageOffset [{l_margin * mm} {b_margin * mm}]>> setpagedevice',
+                    '-c', f'<</PageOffset [{l_margin * mm} {b_margin * mm}] '
+                          f'/BeginPage {{{scale} {scale} scale}}>> setpagedevice',
                     '-f', src
                 ]
                 exec_command(command)

@@ -2,6 +2,7 @@ import asyncio as aio
 import json
 import logging
 import os
+import platform
 import threading
 from multiprocessing import Process
 from time import sleep
@@ -9,7 +10,9 @@ from uuid import uuid4
 
 import segno
 from PIL import Image
-from PyPDF2 import PdfFileReader
+from PyPDF2 import PdfFileReader, PdfFileWriter
+from barcode import UPCA
+from barcode.writer import SVGWriter
 from pylibdmtx.pylibdmtx import encode
 from reportlab.graphics import renderPDF
 from reportlab.graphics.barcode import eanbc
@@ -24,6 +27,8 @@ from src.comm.log import console_log
 from src.comm.util import exec_command
 from src.converter.watcher import Watcher
 
+os_name = None
+
 
 def register_font():
     from reportlab.pdfbase import pdfmetrics
@@ -31,18 +36,22 @@ def register_font():
 
     font_path = os.path.join(conf.font_path, 'Helvetica-Light.ttf')
     pdfmetrics.registerFont(TTFont('Helvetica-Light', font_path))
+    font_path = os.path.join(conf.font_path, 'Helvetica-heavy.ttf')
+    pdfmetrics.registerFont(TTFont('Helvetica-heavy', font_path))
     # font_path = os.path.join(conf.font_path, 'HankookTTFBold.ttf')
     # pdfmetrics.registerFont(TTFont('HankookTTFBold', font_path))
     # font_path = os.path.join(conf.font_path, 'HankookTTFLight.ttf')
     # pdfmetrics.registerFont(TTFont('HankookTTFLight', font_path))
-    # font_path = os.path.join(conf.font_path, 'HankookTTFRegular.ttf')
+    font_path = os.path.join(conf.font_path, 'HankookTTFRegular.ttf')
     pdfmetrics.registerFont(TTFont('HankookTTFRegular', font_path))
     font_path = os.path.join(conf.font_path, 'HankookTTFBold.ttf')
     pdfmetrics.registerFont(TTFont('HankookTTFBold', font_path))
     font_path = os.path.join(conf.font_path, 'HankookTTFLight.ttf')
     pdfmetrics.registerFont(TTFont('HankookTTFLight', font_path))
-    font_path = os.path.join(conf.font_path, 'HankookTTFRegular.ttf')
-    pdfmetrics.registerFont(TTFont('HankookTTFRegular', font_path))
+    font_path = os.path.join(conf.font_path, 'HankookTTFMediumOblique.ttf')
+    pdfmetrics.registerFont(TTFont('HankookTTFMediumOblique', font_path))
+    font_path = os.path.join(conf.font_path, 'HankookTTFSemiboldOblique.ttf')
+    pdfmetrics.registerFont(TTFont('HankookTTFSemiboldOblique', font_path))
 
 
 register_font()
@@ -234,18 +243,29 @@ def conv_pdf(filename):
     return pdf_file
 
 
-def generate_barcode(number, out_file):
-    width, height = 240, 120
-    barcode = eanbc.Ean13BarcodeWidget(number)
-    # 바코드 속성 설정
-    barcode.barHeight = 20 * mm
-    barcode.fontSize = 11
+def generate_barcode(number, kind, out_file):
+    def generate_ean():
+        width, height = 240, 120
+        barcode = eanbc.Ean13BarcodeWidget(number)
+        # 바코드 속성 설정
+        barcode.barHeight = 20 * mm
+        barcode.fontSize = 11
 
-    c = canvas.Canvas(out_file, pagesize=(width, height))
-    d = Drawing(width, height)
-    d.add(barcode)
-    renderPDF.draw(d, c, 10, 10)
-    c.save()
+        c = canvas.Canvas(out_file, pagesize=(width, height))
+        d = Drawing(width, height)
+        d.add(barcode)
+        renderPDF.draw(d, c, 10, 10)
+        c.save()
+
+    def generate_upc():
+        # UPCA 클래스를 사용하여 UPC-A 바코드 객체를 생성
+        # SVGWriter()를 사용하여 SVG 파일로 저장
+        barcode = UPCA(number, writer=SVGWriter())
+
+        # 바코드를 SVG 파일로 저장
+        barcode.save(out_file)
+
+    generate_upc() if kind.lower() == 'upc' else generate_ean()
 
 
 def conv_bar(filename):
@@ -254,7 +274,8 @@ def conv_bar(filename):
             with open(f_name, 'rt', encoding='utf8') as f:
                 size_json = json.load(f)
                 logging.info(f'|{filename}| 파일로부터 바코드 사이즈 정보 획득=|{size_json}|')
-                return size_json['width'], size_json['height']
+                # return size_json['width'], size_json['height']
+                return size_json
         except Exception as e:
             logging.error(f'바코드 파일 에러 발생=|{e}|')
 
@@ -265,9 +286,15 @@ def conv_bar(filename):
         return
     name, ext = ret
 
-    if not (size := read_bar_info(filename)):
+    if not (bar_info := read_bar_info(filename)):
         logging.error(f'바코드 사이즈 획득 실패')
         return
+
+    # 바코드의 종류
+    kind = bar_info.get('kind', 'EAN')
+
+    # 바코드의 크기
+    size = bar_info['width'], bar_info['height']
 
     # 바코드를 생성할 숫자 (길이는 12자리)
     data = name[-12:]
@@ -275,7 +302,7 @@ def conv_bar(filename):
 
     # 바코드를 생성하고 임시 파일에 저장
     tmp_file = get_tmp_name(pdf)
-    generate_barcode(data, tmp_file)
+    generate_barcode(data, kind, tmp_file)
 
     # 상하좌우 여백 없애기
     tmp_eps = get_tmp_name(eps)
@@ -356,6 +383,20 @@ def get_text_width(filename):
     return img_width
 
 
+def rotate_pdf(input_file, output_file, rotation_angle):
+    with open(input_file, 'rb') as file:
+        reader = PdfFileReader(file)
+        writer = PdfFileWriter()
+
+        for page_num in range(reader.numPages):
+            page = reader.getPage(page_num)
+            page.rotateClockwise(-1 * rotation_angle)
+            writer.addPage(page)
+
+        with open(output_file, 'wb') as output:
+            writer.write(output)
+
+
 def generate_pdf(data, filename):
     def set_color(cv_, color_):
         r, g, b = 0, 0, 0
@@ -363,7 +404,7 @@ def generate_pdf(data, filename):
             r, g, b = 0.99, 0.99, 0.99
         elif color_ == 'orange':
             # ff7f00
-            r, g, b = 0xff/0xff, 0x7f/0xff, 0x00/0xff
+            r, g, b = 0xff / 0xff, 0x7f / 0xff, 0x00 / 0xff
 
         logging.info(f'텍스트 컬러 변경=|{r},{g},{b}|')
         cv_.setFillColorRGB(r, g, b)
@@ -387,9 +428,9 @@ def generate_pdf(data, filename):
     if color := data.get('color'):
         set_color(c, color)
 
-    to = c.beginText()
-    to.setFont(font, font_size)
-    # c.setFont(font, font_size)
+    # to = c.beginText()
+    # to.setFont(font, font_size)
+    c.setFont(font, font_size)
 
     # todo 2023.0829 by june1
     #  - 왜 1pt 가 0.3528 mm 가 아닌걸까?
@@ -431,35 +472,40 @@ def generate_pdf(data, filename):
     logging.info(f'텍스트 정렬, 상하=|{valign}| 좌우=|{align}|')
 
     # 데카르트 좌표(좌하단, 즉 원점으로부터..)
-    if degree := data.get('rotate'):
-        c.rotate(degree)
-        c.drawString(height / 2 * mm, -width * mm, content)
+
+    if valign == 'top':
+        y = height - font_size_mm
+    elif valign == 'bottom':
+        y = 0
     else:
-        if valign == 'top':
-            y = height - font_size_mm
-        elif valign == 'bottom':
-            y = 0
-        else:
-            y = round((height / 2) - (font_size_mm / 2), 2)
+        y = round((height / 2) - (font_size_mm / 2), 2)
 
-        if align == 'center':
-            # c.drawCentredString(round(width / 2, 2) * mm, y * mm, content)
-            to.setTextOrigin(round((width - text_width) / 2, 2) * mm, y * mm)
-        elif align == 'left':
-            # c.drawString(x=0, y=y * mm, text=content)
-            to.setTextOrigin(0, y * mm)
-        elif align == 'right':
-            # c.drawRightString(x=width * mm, y=y * mm, text=content)
-            to.setTextOrigin((width - text_width) * mm, y * mm)
+    if align == 'center':
+        c.drawCentredString(round(width / 2, 2) * mm, y * mm, content)
+        # to.setTextOrigin(round((width - text_width) / 2, 2) * mm, y * mm)
+    elif align == 'left':
+        c.drawString(x=0, y=y * mm, text=content)
+        # to.setTextOrigin(0, y * mm)
+    elif align == 'right':
+        c.drawRightString(x=width * mm, y=y * mm, text=content)
+        # to.setTextOrigin((width - text_width) * mm, y * mm)
 
-    to.textLine(content)
-    c.drawText(to)
+    # to.textLine(content)
+    # c.drawText(to)
     c.save()
 
     if need_resize_flag:
         logging.info(f'텍스트의 폭 축소 적용')
         tmp_name = get_tmp_name(pdf)
         convert_scale(filename, tmp_name, (old_width, height))
+        os.remove(filename)
+        os.rename(tmp_name, filename)
+
+    if degree := data.get('rotate'):
+        logging.info(f'텍스트의 방향 전환')
+        # c.rotate(degree)
+        tmp_name = get_tmp_name(pdf)
+        rotate_pdf(filename, tmp_name, degree)
         os.remove(filename)
         os.rename(tmp_name, filename)
 
@@ -536,8 +582,10 @@ def thread_proc(path, proc):
 
 
 def converter_proc(proc):
+    global os_name
+    os_name = platform.system()
     in_path = os.path.join(conf.root_path, conf.in_path)
-    logging.info(f'입력 디렉토리 =|{in_path}|')
+    logging.info(f'입력 디렉토리 =|{in_path}| 플랫폼 이름=|{os_name}|')
 
     # 메인 쓰레드만이 시그널 등록을 할 수 있음
     ready_cont()
@@ -560,18 +608,18 @@ def converter_proc(proc):
 
 
 def test():
-    from treepoem import generate_barcode
-    from PIL import Image
+    from treepoem import generate_barcode as gen_bar
 
-    # def generate_and_print(gtin_, serial_number_, expiry_date_, batch_number_):
-    def generate_and_print(data_):
+    # def generate_and_print(data_):
+    def generate_and_print(gtin_, serial_number_, expiry_date_, batch_number_):
         # Generate datamatrix
-        datamatrix = generate_barcode(
+        datamatrix = gen_bar(
             barcode_type='gs1datamatrix',
-            # data=f"(01){gtin_}(21){serial_number_}(17){expiry_date_}(10){batch_number_}",
-            data=data_,
+            data=f"(01){gtin_}(21){serial_number_}(17){expiry_date_}(10){batch_number_}",
+            # data=data_,
             options={"parsefnc": True, "format": "square", "version": "36x36"}
         )
+        # datamatrix.convert("1").save("barcode.png")
 
         # Resize datamatrix to desired size
         dm_size_px = (120, 120)
@@ -592,14 +640,14 @@ def test():
     serial_number = "01234567891011"
     expiry_date = "250731"
     batch_number = "DATAMATRIXTEST"
-    data = "(01)08808563401119(21)5&4TOm5+.Uw'l(91)EE09(92)e/RE1wbSABu6LdbXkBRmOWB2rw1EU6NjEYshQQ2MiAs="
+    generate_and_print(gtin, serial_number, expiry_date, batch_number)
 
-    # generate_and_print(gtin, serial_number, expiry_date, batch_number)
-    generate_and_print(data)
+    # data = "(01)08808563401119(21)5&4TOm5+.Uw'l91EE0992e/RE1wbSABu6LdbXkBRmOWB2rw1EU6NjEYshQQ2MiAs="
+    # generate_and_print(data)
 
 
-def test_2():
-    print('hi')
+def test_1():
+    pass
 
 
 if __name__ == '__main__':
