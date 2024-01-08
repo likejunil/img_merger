@@ -1,5 +1,6 @@
 import asyncio as aio
 import logging
+from collections import deque
 from time import time
 
 from watchdog.events import FileSystemEventHandler
@@ -22,7 +23,7 @@ class Watcher(FileSystemEventHandler):
         self.filename = None
         self.observer = Observer()
         self._ok = True
-        self._ret = []
+        self._ret = deque(maxlen=100)
 
     def filtering(self, filename):
         if filename.endswith(tuple(conf.infile_ext)):
@@ -40,7 +41,7 @@ class Watcher(FileSystemEventHandler):
             logging.info(f'|{self.filename}| 처리 프로세스 시작')
             self._ret.append(self.proc(self.filename))
             et = time()
-            print(f'소요시간=|{et - st}|')
+            logging.info(f'소요시간=|{et - st}|')
 
     def on_moved(self, event):
         logging.debug(f'|{event.src_path}| 이동 이벤트 발생')
@@ -53,7 +54,7 @@ class Watcher(FileSystemEventHandler):
 
     def get_ret(self):
         if len(self._ret) > 0:
-            return True, self._ret.pop(0)
+            return True, self._ret.popleft()
         return False, None
 
     async def run_proc(self):

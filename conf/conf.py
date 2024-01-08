@@ -24,6 +24,7 @@ def ready_conf():
     conf_dict[_.pid_path] = os.path.join(root_path, 'pid')
     conf_dict[_.font_path] = os.path.join(root_path, 'fonts')
     conf_dict[_.yaml_file] = os.getenv(_.yaml_file.upper())
+    conf_dict[_.passwd] = os.getenv(_.passwd.upper())
 
     # -----------------------
     # yaml 파일로부터..
@@ -35,7 +36,10 @@ def ready_conf():
     if not yml_conf:
         raise Exception(f'|{_.yaml_file}|로부터 정보를 읽지 못했습니다.')
 
+    # 디버깅
     conf_dict[_.debug] = yml_conf[_.debug]
+
+    # 파일 패스 관련
     conf_dict[_.in_path] = yml_conf[_.in_data][_.path]
     conf_dict[_.infile_ext] = yml_conf[_.in_data][_.ext]
     conf_dict[_.path_count] = yml_conf[_.in_data][_.path_count]
@@ -43,7 +47,15 @@ def ready_conf():
     conf_dict[_.done_path] = yml_conf[_.done_data][_.path]
     conf_dict[_.merged_path] = yml_conf[_.merged_data][_.path]
 
+    # 바코드 관련
     conf_dict[_.bar_type] = yml_conf[_.barcode][_.bar]
+
+    # 데이터베이스
+    dbms = yml_conf[_.db_name][_.db_dbms]
+    conf_dict[_.user] = dbms[_.user]
+    conf_dict[_.addr] = dbms[_.addr]
+    conf_dict[_.port] = dbms[_.port]
+    conf_dict[_.db] = dbms[_.db]
 
     # -----------------------
     # namedtuple 로 변환하여 반환

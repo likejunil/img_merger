@@ -25,3 +25,10 @@ merged_data:
   path: "data/merged_files"
 
 debug: True
+
+database:
+  oracle:
+    user: "LPAS"
+    addr: "202.31.6.215"
+    port: 1521
+    db: "SOLZARD"

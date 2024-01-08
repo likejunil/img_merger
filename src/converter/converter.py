@@ -560,7 +560,6 @@ async def do_convert(watcher):
         if b:
             logging.info(f'id =|{threading.get_ident()}| ret =|{r}|')
             # 무엇이든.. 하고 싶은 작업을 여기서 해라..
-
         await aio.sleep(0.5)
     watcher.stop_proc()
 
@@ -588,7 +587,7 @@ def converter_proc(proc):
     logging.info(f'입력 디렉토리 =|{in_path}| 플랫폼 이름=|{os_name}|')
 
     # 메인 쓰레드만이 시그널 등록을 할 수 있음
-    ready_cont()
+    _, _, ok = ready_cont()
     t_list = []
     logging.info(f'총 |{conf.path_count}|개의 디렉토리 모니터링')
     for i in range(conf.path_count):
@@ -597,7 +596,6 @@ def converter_proc(proc):
         t_list.append(t)
         t.start()
 
-    _, _, ok = ready_cont()
     while ok():
         sleep(1)
 
@@ -610,16 +608,15 @@ def converter_proc(proc):
 def test():
     from treepoem import generate_barcode as gen_bar
 
-    # def generate_and_print(data_):
-    def generate_and_print(gtin_, serial_number_, expiry_date_, batch_number_):
+    # def generate_and_print(gtin_, serial_number_, expiry_date_, batch_number_):
+    def generate_and_print(data_):
         # Generate datamatrix
         datamatrix = gen_bar(
             barcode_type='gs1datamatrix',
-            data=f"(01){gtin_}(21){serial_number_}(17){expiry_date_}(10){batch_number_}",
-            # data=data_,
+            # data=f"(01){gtin_}(21){serial_number_}(17){expiry_date_}(10){batch_number_}",
+            data=data_,
             options={"parsefnc": True, "format": "square", "version": "36x36"}
         )
-        # datamatrix.convert("1").save("barcode.png")
 
         # Resize datamatrix to desired size
         dm_size_px = (120, 120)
@@ -636,20 +633,16 @@ def test():
         # Save the image
         picture.save("datamatrix.png")
 
-    gtin = "01234567890128"
-    serial_number = "01234567891011"
-    expiry_date = "250731"
-    batch_number = "DATAMATRIXTEST"
-    generate_and_print(gtin, serial_number, expiry_date, batch_number)
+    # gtin = "01234567890128"
+    # serial_number = "01234567891011"
+    # expiry_date = "250731"
+    # batch_number = "DATAMATRIXTEST"
+    # generate_and_print(gtin, serial_number, expiry_date, batch_number)
 
-    # data = "(01)08808563401119(21)5&4TOm5+.Uw'l91EE0992e/RE1wbSABu6LdbXkBRmOWB2rw1EU6NjEYshQQ2MiAs="
-    # generate_and_print(data)
-
-
-def test_1():
-    pass
+    data = "(01)08808563401119(21)5&4TOm5+.Uw'l(91)EE09(92)e/RE1wbSABu6LdbXkBRmOWB2rw1EU6NjEYshQQ2MiAs="
+    generate_and_print(data)
 
 
 if __name__ == '__main__':
-    console_log(get_log_level())
     converter_proc(convert)
+    # test()

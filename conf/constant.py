@@ -50,3 +50,14 @@ svg = '.svg'
 os_window = "Windows OS"
 os_linux = "Linux OS"
 os_mac = "Mac OS"
+
+# -------------------
+# db
+# -------------------
+db_name = 'database'
+db_dbms = 'oracle'
+user = "user"
+passwd = "passwd"
+addr = "addr"
+port = "port"
+db = "db"

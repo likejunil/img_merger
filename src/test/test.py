@@ -1,3 +1,4 @@
+import collections
 import json
 import os
 
@@ -61,15 +62,13 @@ def main():
 
 
 def test():
-    filename = 'abcd_880856333945.bar'
-    data = {
-        'width': 42.596,
-        'height': 21.641,
-    }
-    data_path = os.path.join(conf.root_path, conf.data_path, 'src_files')
-    output = os.path.join(data_path, filename)
-    with open(output, mode='wt', encoding='utf8') as f:
-        json.dump(data, f, indent=4, ensure_ascii=False)
+    q = collections.deque(maxlen=10)
+    q.append(10)
+    q.append(11)
+    q.append(12)
+    r = q.popleft()
+    print(r)
+    print(q)
 
 
 if __name__ == '__main__':

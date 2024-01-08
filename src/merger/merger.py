@@ -341,7 +341,7 @@ def get_task_info():
             'src': [
                 {
                     'type_': 'img',
-                    'name': 'GLB_G3_기본도안',
+                    'name': 'GLB_G3',
                     'coordi': (0, 0),
                     'size': (240, 80),
                     'rotate': 0,
@@ -393,7 +393,7 @@ def get_task_info():
                 {
                     'type_': 'img',
                     'name': 'SPACE_1',
-                    'coordi': (0, 0),
+                    'coordi': (0.1, 0.1),
                     'size': (35, 21),
                     'rotate': 0,
                     'priority': 2,
