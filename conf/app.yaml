@@ -29,6 +29,6 @@ debug: True
 database:
   oracle:
     user: "LPAS"
-    addr: "202.31.6.215"
+    addr: "202.31.7.29"
     port: 1521
-    db: "SOLZARD"
+    db: "DHKDWMS"

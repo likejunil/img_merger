@@ -1,4 +1,3 @@
-import collections
 import json
 import os
 
@@ -61,14 +60,25 @@ def main():
         json.dump(data, f)
 
 
+def test_1():
+    import subprocess
+
+    print(f'현재 디렉토리=|{os.getcwd()}|')
+    print(f'{conf.root_path}')
+    base = conf.root_path
+    i_file = f'{base}/data/RU_HK_v8.pdf'
+    o_file = f'{base}/data/out.png'
+
+    # Ghostscript 명령 예시: PDF 파일을 PNG 이미지로 변환
+    command = ["gs", "-dBATCH", "-dNOPAUSE", "-sDEVICE=png16m", "-r300",
+               f"-sOutputFile={o_file}", f"{i_file}"]
+
+    # subprocess를 사용하여 명령 실행
+    subprocess.run(command)
+
+
 def test():
-    q = collections.deque(maxlen=10)
-    q.append(10)
-    q.append(11)
-    q.append(12)
-    r = q.popleft()
-    print(r)
-    print(q)
+    pass
 
 
 if __name__ == '__main__':
