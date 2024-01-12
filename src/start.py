@@ -1,13 +1,8 @@
-import logging
 import os
 import sys
 
 from src.comm.comm import lock_run
-from src.comm.log import init_log
-
-
-def main_proc():
-    init_log(logging.INFO, 'img_merger')
+from src.parent.monitor import main_proc
 
 
 def set_daemon():
@@ -47,5 +42,4 @@ def daemon(start):
 
 
 if __name__ == '__main__':
-    # main_proc()
     daemon(main_proc)

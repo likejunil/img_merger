@@ -122,3 +122,5 @@ wheel==0.38.4
 widgetsnbextension==4.0.5
 y-py==0.5.9
 ypy-websocket==0.8.2
+
+schedule~=1.2.1

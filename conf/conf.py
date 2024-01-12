@@ -1,4 +1,5 @@
 import os
+import platform
 from collections import namedtuple
 
 import yaml
@@ -15,7 +16,7 @@ def ready_conf():
     # -----------------------
     load_dotenv()
 
-    root_path = os.getenv(_.root_path.upper())
+    root_path = os.getenv("LPAS_ROOT")
     conf_dict[_.root_path] = root_path
     conf_dict[_.conf_path] = os.path.join(root_path, 'conf')
     conf_dict[_.src_path] = os.path.join(root_path, 'src')
@@ -36,26 +37,36 @@ def ready_conf():
     if not yml_conf:
         raise Exception(f'|{_.yaml_file}|로부터 정보를 읽지 못했습니다.')
 
-    # 디버깅
-    conf_dict[_.debug] = yml_conf[_.debug]
+    # 공통
+    comm = yml_conf[_.comm]
 
-    # 파일 패스 관련
-    conf_dict[_.in_path] = yml_conf[_.in_data][_.path]
-    conf_dict[_.infile_ext] = yml_conf[_.in_data][_.ext]
-    conf_dict[_.path_count] = yml_conf[_.in_data][_.path_count]
-    conf_dict[_.out_path] = yml_conf[_.out_data][_.path]
-    conf_dict[_.done_path] = yml_conf[_.done_data][_.path]
-    conf_dict[_.merged_path] = yml_conf[_.merged_data][_.path]
-
-    # 바코드 관련
-    conf_dict[_.bar_type] = yml_conf[_.barcode][_.bar]
+    # 로그
+    log = comm[_.log]
+    conf_dict[_.debug] = log[_.debug]
+    conf_dict[_.log_time] = log[_.log_time]
 
     # 데이터베이스
-    dbms = yml_conf[_.db_name][_.db_dbms]
+    dbms = comm[_.db_name][_.db_dbms]
     conf_dict[_.user] = dbms[_.user]
     conf_dict[_.addr] = dbms[_.addr]
     conf_dict[_.port] = dbms[_.port]
     conf_dict[_.db] = dbms[_.db]
+
+    # 파일 패스 관련
+    path_info = yml_conf[_.path]
+    conf_dict[_.in_path] = path_info[_.in_data][_.path]
+    conf_dict[_.infile_ext] = path_info[_.in_data][_.ext]
+    conf_dict[_.path_count] = path_info[_.in_data][_.path_count]
+    conf_dict[_.out_path] = path_info[_.out_data][_.path]
+    conf_dict[_.done_path] = path_info[_.done_data][_.path]
+    conf_dict[_.merged_path] = path_info[_.merged_data][_.path]
+
+    # 바코드 관련
+    converter = yml_conf[_.converter]
+    conf_dict[_.bar_type] = converter[_.barcode][_.bar]
+
+    #
+    os_name = platform.system()
 
     # -----------------------
     # namedtuple 로 변환하여 반환

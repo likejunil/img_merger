@@ -8,9 +8,10 @@ from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 
 from conf.conf import config as conf
-from src.comm.comm import get_log_level, ready_cont
-from src.comm.log import console_log
+from src.comm.comm import ready_cont, ready_queue
+from src.comm.log import console_log, get_log_level
 from src.comm.util import exec_command
+from src.test.test import loop_test
 
 
 def r(d):
@@ -722,7 +723,14 @@ def resize_data(src_list, info_list, size):
     return out_list
 
 
-def merger_proc():
+async def merger_proc(sq, rq):
+    logging.info(f'머저 모듈 시작')
+    send_q, recv_q, close_q = ready_queue(sq, rq)
+    loop_test(send_q, recv_q)
+    logging.info(f'머저 모듈 종료')
+    close_q()
+    return
+
     _, _, ok = ready_cont()
     while ok():
         try:

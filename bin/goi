@@ -1,0 +1,128 @@
+#! /bin/bash
+
+# ------------------------------
+#  디렉토리 정보
+# ------------------------------
+ROOT=${LPAS_ROOT}
+TARGET=start.py
+
+CONF=${ROOT}/conf
+LOG=${ROOT}/log
+DATA=${ROOT}/data
+SRC=${ROOT}/src
+
+
+# ------------------------------
+#  파이썬 환경변수 설정
+# ------------------------------
+PYTHON=python
+export PYTHONPATH=${ROOT}
+PROC="${PYTHON} ${SRC}/${TARGET}"
+
+
+# ------------------------------
+#  함수
+# ------------------------------
+start() {
+    printf "  1. ${ROOT} 으로 현재 디렉토리를 변경합니다.\n"
+    cd ${ROOT}
+
+    printf "  2. ${TARGET} 을 실행합니다.\n"
+    ${PROC}
+    
+    if [ $? -eq 0 ]; then
+        printf "  3. 프로세스가 성공적으로 실행되었습니다. =[$?]\n"
+    else
+        printf "  3. 프로세스를 실행하지 못했습니다. =[$?]\n"
+    fi
+    printf "\n"
+}
+
+stop() {
+    PID=`ps -ef | grep "${PROC}" | grep -v grep | awk '{print $2}'`
+    printf "  1. 현재 실행중인 프로세스의 pid를 확인합니다.\n"
+
+    if [ ${PID} ]; then
+        # IFS 값을 개행문자로 설정
+        # 문자열을 IFS 기준으로 나누어 배열로 저장
+        IFS=$"\n"
+        read -ra lines <<< "${PID}"
+
+        # 배열 순회 및 적용
+        for line in "${lines[@]}"; do
+            if [ ${line} ]; then
+                printf "  2. 종료 시그널을 전송합니다.(pid=${line})\n"
+
+                kill -TERM ${line}
+                if [ $? -eq 0 ]; then
+                    printf "  3. 프로세스가 성공적으로 종료되었습니다.\n"
+                else
+                    printf "  3. 프로세스를 종료시키지 못했습니다.\n"
+                fi
+            fi
+        done
+    else
+        printf "  2. 실행중인 프로세스가 없습니다.\n"
+    fi 
+    printf "\n"
+}
+
+
+# ------------------------------
+#  프로그램 실행 및 중지, 상태 확인
+# ------------------------------
+case "$1" in
+"start")
+    echo ""
+    echo " -+-------------------------+-"
+    echo "  |  프로그램을 시작하겠다  |"
+    echo " -+-------------------------+-"
+    echo ""
+    start
+    ;;
+
+"stop")
+    echo ""
+    echo " -+-------------------------+-"
+    echo "  |  프로그램을 종료하겠다  |"
+    echo " -+-------------------------+-"
+    echo ""
+    stop
+    ;;
+
+"status")
+    echo ""
+    echo " -+------------------------------+-"
+    echo "  |  프로그램 상태를 확인하겠다  |"
+    echo " -+------------------------------+-"
+    echo ""
+    ;;
+
+"info1")
+    echo ""                                                                                                                                      
+    echo "----------------------------------------------------------------------------------------------------------------"
+    echo "UID        PID  PPID  C STIME TTY          TIME CMD"
+    echo "================================================================================================================"
+
+    RESULT_lpas=`ps -ef | grep "${PROC}" | grep -v grep`
+    echo "${RESULT_lpas}" 
+    echo ""
+    ;;
+
+"info2")
+    echo ""                                                                                                                                      
+    echo "----------------------------------------------------------------------------------------------------------------"
+    echo "USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND"
+    echo "================================================================================================================"
+
+    RESULT_lpas=`ps aux | grep "${PROC}" | grep -v grep`
+    echo "${RESULT_lpas}"                                                                                                                 
+    echo ""
+    ;;
+    
+*)
+    echo "Usage: $0 [start | stop | info1 | info2]"
+    exit 1
+    ;;
+
+esac   

@@ -1,34 +1,55 @@
-# starter 에 의해서 src_data -> in_data
-src_data:
-  path: "data/src_files"
+########################
+commom:
+  # log info
+  log:
+    debug: True
+    log_time: "00:00"
 
-in_data:
-  path: "data/in_files"
-  ext: [ "jpg", "jpeg", "png", "eps", "pdf", "bar", "qr", "dmtx", "text" ]
-  path_count: 9
+  # db info
+  database:
+    oracle:
+      user: "LPAS"
+      addr: "202.31.7.29"
+      port: 1521
+      db: "DHKDWMS"
 
-barcode:
-  bar: "EAN13"
-  # bar: "UPCA"
-  qr: ""
-  dmtx: ""
+########################
+path:
+  # starter 에 의해서 src_data -> in_data
+  src_data:
+    path: "data/src_files"
 
-# converter 에 의해서 in_data -> out_data
-out_data:
-  path: "data/out_files"
+  #
+  in_data:
+    path: "data/in_files"
+    ext: [ "jpg", "jpeg", "png", "eps", "pdf", "bar", "qr", "dmtx", "text" ]
+    path_count: 9
 
-# merger 에 의해서 out_data -> done_data, merged_data
-done_data:
-  path: "data/done_files"
+  # converter 에 의해서 in_data -> out_data
+  out_data:
+    path: "data/out_files"
 
-merged_data:
-  path: "data/merged_files"
+  #
+  merged_data:
+    path: "data/merged_files"
 
-debug: True
+  # merger 에 의해서 out_data -> done_data, merged_data
+  done_data:
+    path: "data/done_files"
 
-database:
-  oracle:
-    user: "LPAS"
-    addr: "202.31.7.29"
-    port: 1521
-    db: "DHKDWMS"
+########################
+monitor:
+
+########################
+starter:
+
+########################
+converter:
+  barcode:
+    bar: "EAN13"
+    # bar: "UPCA"
+    qr: ""
+    dmtx: ""
+
+########################
+merger:

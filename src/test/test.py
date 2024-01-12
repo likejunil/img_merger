@@ -1,7 +1,10 @@
 import json
+import logging
 import os
+from time import sleep
 
 from conf.conf import config as conf
+from src.comm.comm import ready_cont
 
 
 def main():
@@ -75,6 +78,19 @@ def test_1():
 
     # subprocess를 사용하여 명령 실행
     subprocess.run(command)
+
+
+def loop_test(sq, rq):
+    count = 0
+    ok = ready_cont()[2]
+    while ok():
+        msg = f'{os.getpid()} 현재 카운트=|{count}|'
+        sq(msg)
+        logging.info(f'송신=|{msg}|')
+        msg = rq()
+        logging.info(f'수신=|{msg}|')
+        count += 1
+        sleep(1)
 
 
 def test():

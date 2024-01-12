@@ -2,7 +2,6 @@ import asyncio as aio
 import json
 import logging
 import os
-import platform
 import threading
 from multiprocessing import Process
 from time import sleep
@@ -11,8 +10,6 @@ from uuid import uuid4
 import segno
 from PIL import Image
 from PyPDF2 import PdfFileReader, PdfFileWriter
-from barcode import UPCA
-from barcode.writer import SVGWriter
 from pylibdmtx.pylibdmtx import encode
 from reportlab.graphics import renderPDF
 from reportlab.graphics.barcode import eanbc
@@ -22,12 +19,11 @@ from reportlab.pdfgen import canvas
 
 from conf.conf import config as conf
 from conf.constant import pdf, eps
-from src.comm.comm import ready_cont, get_loop, get_log_level, tm
-from src.comm.log import console_log
+from src.comm.comm import ready_cont, get_loop, tm, ready_queue
+from src.comm.log import console_log, get_log_level
 from src.comm.util import exec_command
 from src.converter.watcher import Watcher
-
-os_name = None
+from src.test.test import loop_test
 
 
 def register_font():
@@ -257,15 +253,7 @@ def generate_barcode(number, kind, out_file):
         renderPDF.draw(d, c, 10, 10)
         c.save()
 
-    def generate_upc():
-        # UPCA 클래스를 사용하여 UPC-A 바코드 객체를 생성
-        # SVGWriter()를 사용하여 SVG 파일로 저장
-        barcode = UPCA(number, writer=SVGWriter())
-
-        # 바코드를 SVG 파일로 저장
-        barcode.save(out_file)
-
-    generate_upc() if kind.lower() == 'upc' else generate_ean()
+    generate_ean()
 
 
 def conv_bar(filename):
@@ -580,12 +568,16 @@ def thread_proc(path, proc):
     aio.run(thread_main(path, proc))
 
 
-def converter_proc(proc):
-    global os_name
-    os_name = platform.system()
-    in_path = os.path.join(conf.root_path, conf.in_path)
-    logging.info(f'입력 디렉토리 =|{in_path}| 플랫폼 이름=|{os_name}|')
+async def converter_proc(sq, rq):
+    logging.info(f'컨버터 모듈 시작')
+    send_q, recv_q, close_q = ready_queue(sq, rq)
+    loop_test(send_q, recv_q)
+    logging.info(f'컨버터 모듈 종료')
+    close_q()
+    return
 
+    proc = convert
+    in_path = os.path.join(conf.root_path, conf.in_path)
     # 메인 쓰레드만이 시그널 등록을 할 수 있음
     _, _, ok = ready_cont()
     t_list = []

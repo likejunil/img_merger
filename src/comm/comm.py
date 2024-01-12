@@ -2,6 +2,7 @@ import asyncio as aio
 import logging
 import sys
 from datetime import datetime as dt
+from queue import Full, Empty
 from signal import signal, SIGTERM, SIGINT
 from time import time
 from uuid import uuid4
@@ -71,8 +72,52 @@ def get_loop():
     return loop
 
 
-def get_log_level():
-    return logging.DEBUG if conf.debug else logging.INFO
+@cache_func
+def msg_queue(mq=None):
+    _mq = mq
+
+    def send_q(msg):
+        try:
+            _mq.put_nowait(msg)
+        except Full:
+            logging.error(f'Queue 가 가득 찼음')
+            pass
+        except Exception as e:
+            logging.error(e)
+
+    def close_q():
+        _mq.close()
+
+    return send_q, close_q
+
+
+@cache_func
+def ready_queue(sq=None, rq=None):
+    logging.info(f'큐 초기화 작업')
+    _sq, _rq = sq, rq
+
+    def send_q(msg):
+        try:
+            _sq.put_nowait(msg)
+        except Full:
+            logging.error(f'Queue 가 가득 찼음')
+            pass
+        except Exception as e:
+            logging.error(e)
+
+    def recv_q():
+        try:
+            return _rq.get_nowait()
+        except Empty:
+            pass
+        except Exception as e:
+            logging.error(e)
+
+    def close_q():
+        _sq.close()
+        _rq.close()
+
+    return send_q, recv_q, close_q
 
 
 def tm(t=None):

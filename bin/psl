@@ -1,0 +1,34 @@
+#! /bin/bash
+
+TARGET=$1
+
+# ------------------------------
+# 함수
+# ------------------------------
+# 프로세스 상태 출력 함수
+print_info() {
+    PROC1=`ps -ef | grep "${TARGET}" | grep -v grep | grep -v psl | grep -v /usr/bin/python2`
+    PROC2=`ps aux | grep "${TARGET}" | grep -v grep | grep -v psl | grep -v /usr/bin/python2`
+
+    printf "==================================================================================================\n"
+    printf "UID        PID  PPID  C STIME TTY          TIME CMD\n"
+    printf "==================================================================================================\n"
+    printf "${PROC1}\n\n\n"
+
+    printf "==================================================================================================\n"
+    printf "USER       PID %%CPU %%MEM    VSZ   RSS TTY      STAT START   TIME COMMAND\n"
+    printf "==================================================================================================\n"
+    printf "${PROC2}\n\n\n"
+}
+
+
+# ------------------------------
+# 메인
+# ------------------------------
+if [ $# == 0 ]; then
+    printf " :실행 인자가 없음 ㅜㅠ\n\n"
+    exit
+else
+    printf " :실행 ${TARGET}\n\n"
+    print_info
+fi

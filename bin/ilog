@@ -1,0 +1,7 @@
+#! /bin/bash
+
+AUTO_LOG_DIR=${LPAS_LOG}/log
+TODAY=`date +%Y%m%d`
+PROC="tail -f ${AUTO_LOG_DIR}/*_${TODAY}.log"
+
+${PROC}
