@@ -42,6 +42,6 @@
     - PDF 파일을 읽고 쓸 수 있는 Python 라이브러리이다.
     - 기존 PDF에 텍스트를 추가하거나 이미지를 삽입하는 등의 작업을 수행할 수 있다.
 
-###                                      
+###                                       
 
 pip list --format=freeze > requirements.txt

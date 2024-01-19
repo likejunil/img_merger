@@ -70,3 +70,9 @@ svg = '.svg'
 os_window = "Windows OS"
 os_linux = "Linux OS"
 os_mac = "Mac OS"
+
+# -------------------
+#
+# -------------------
+active = 'ACTIVE'
+standby = 'STANDBY'

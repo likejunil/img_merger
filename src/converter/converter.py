@@ -23,7 +23,6 @@ from src.comm.comm import ready_cont, get_loop, tm, ready_queue
 from src.comm.log import console_log, get_log_level
 from src.comm.util import exec_command
 from src.converter.watcher import Watcher
-from src.test.test import loop_test
 
 
 def register_font():
@@ -568,14 +567,7 @@ def thread_proc(path, proc):
     aio.run(thread_main(path, proc))
 
 
-async def converter_proc(sq, rq):
-    logging.info(f'컨버터 모듈 시작')
-    send_q, recv_q, close_q = ready_queue(sq, rq)
-    loop_test(send_q, recv_q)
-    logging.info(f'컨버터 모듈 종료')
-    close_q()
-    return
-
+async def run_converter(send_q, recv_q):
     proc = convert
     in_path = os.path.join(conf.root_path, conf.in_path)
     # 메인 쓰레드만이 시그널 등록을 할 수 있음
@@ -595,6 +587,14 @@ async def converter_proc(sq, rq):
         t.terminate()
     for t in t_list:
         t.join()
+
+
+async def converter_proc(sq, rq):
+    logging.info(f'컨버터 모듈 시작')
+    send_q, recv_q, close_q = ready_queue(sq, rq)
+    await run_converter(send_q, recv_q)
+    logging.info(f'컨버터 모듈 종료')
+    close_q()
 
 
 def test():
@@ -636,5 +636,4 @@ def test():
 
 
 if __name__ == '__main__':
-    converter_proc(convert)
-    # test()
+    pass

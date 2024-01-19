@@ -5,6 +5,7 @@ from time import sleep
 
 from conf.conf import config as conf
 from src.comm.comm import ready_cont
+from src.starter.starter import server_status
 
 
 def main():
@@ -93,10 +94,19 @@ def loop_test(sq, rq):
         sleep(1)
 
 
-def test():
-    pass
+def test_2():
+    update, get_info = server_status()
+    info = get_info()
+    print(info)
+    update()
+    info = get_info()
+    print(info)
+
+
+def test_3():
+    a = '  aa '
+    print(f'|{a.strip()}|')
 
 
 if __name__ == '__main__':
-    # main()
-    test()
+    test_3()
