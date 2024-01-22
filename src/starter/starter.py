@@ -2,14 +2,14 @@ import asyncio as aio
 import logging
 import socket
 from multiprocessing import Queue
-from time import sleep
 
 import conf.constant as _
 from src.comm.comm import ready_cont, get_loop, cache_func
 from src.comm.db import get_connect, query_all, query_one, update
 from src.comm.log import console_log
 from src.starter.query import get_sql_lpas_group, get_sql_server_info, get_upd_lpas_group, get_sql_lpas_headers, \
-    get_sql_lpas_items, get_upd_lpas_headers_ret, get_upd_lpas_group_ret
+    get_sql_lpas_items, get_upd_lpas_group_ret, get_upd_run_lpas_group, get_state_group_run, get_state_group_yes, \
+    get_state_group_err, get_upd_err_lpas_group
 
 
 def get_my_info(hostname):
@@ -37,7 +37,7 @@ def server_status():
     hostname = socket.gethostname()
     info = get_my_info(hostname)
     old_status = info["status"]
-    logging.info(f'호스트=|{hostname}| 시작 상태=|{old_status}|')
+    logging.info(f'호스트=|{hostname}| 상태=|{old_status}| 태스크=|{info["task"]}|')
 
     def _get_info():
         return info
@@ -58,35 +58,22 @@ def server_status():
     return change, get_info
 
 
-async def update_status(period=1):
-    logging.info(f'서버 상태 갱신 시작')
-    change = server_status()[0]
-
-    ok = ready_cont()[2]
-    while ok():
-        await aio.sleep(period)
-        change()
-
-    logging.info(f'서버 상태 갱신 종료')
-
-
 def get_lpas_group(name, task):
     ok = ready_cont()[2]
     while ok():
-        sql, cols = get_sql_lpas_group(name, task)
+        sql, cols = get_sql_lpas_group(name)
         if g := query_one(sql):
-            # ('110', '9999036431', '9999036432', None)
-            logging.info(f'g 를 읽음=|{g}|')
+            update(get_upd_run_lpas_group(g[cols.mandt], g[cols.ebeln], g[cols.vbeln]))
+            logging.info(f'G 읽음=|{g}|')
             return g, cols
 
         update(get_upd_lpas_group(name, task))
-        sleep(0.01)
 
 
 def get_lpas_headers(mandt, ebeln, vbeln):
     sql, cols = get_sql_lpas_headers(mandt, ebeln, vbeln)
     if h := query_all(sql):
-        logging.info(f'h 를 읽음=|{h}|')
+        logging.info(f'H 읽음=|{h}|')
         return h, cols
     return [], []
 
@@ -94,61 +81,9 @@ def get_lpas_headers(mandt, ebeln, vbeln):
 def get_lpas_items(mandt, ebeln, vbeln, posnr, matnr):
     sql, cols = get_sql_lpas_items(mandt, ebeln, vbeln, posnr, matnr)
     if h := query_all(sql):
-        logging.info(f'i 를 읽음=|{h}|')
+        logging.info(f'I 읽음=|{h}|')
         return h, cols
     return [], []
-
-
-async def update_result(period=1):
-    logging.info(f'작업 결과 갱신 시작')
-    get_info = server_status()[1]
-
-    ok = ready_cont()[2]
-    while ok():
-        await aio.sleep(period)
-        if not (info := get_info()):
-            continue
-        if info['status'] != _.active:
-            continue
-
-        # LPAS_ORDER_G 로부터 작업 조회
-        name = info['name']
-        task = info['task']
-        sql, g_cols = get_sql_lpas_group(name, task)
-        if not (g := query_one(sql)):
-            continue
-        mandt = g[g_cols.mandt]
-        ebeln = g[g_cols.ebeln]
-        vbeln = g[g_cols.vbeln]
-
-        # LPAS_ORDER_H 로부터 작업 조회
-        h_list, h_cols = get_lpas_headers(mandt, ebeln, vbeln)
-        if not len(h_list):
-            update(get_upd_lpas_group_ret(mandt, ebeln, vbeln, 'E'))
-            continue
-
-        g_ret = 'Y'
-        h_ret = 'Y'
-        for h in h_list:
-            posnr = h[h_cols.posnr]
-            matnr = h[h_cols.matnr]
-            i_cnt = h[h_cols.image_cnt]
-
-            # LPAS_ORDER_I 로부터 작업 조회
-            i_list, i_cols = get_lpas_items(mandt, ebeln, vbeln, posnr, matnr)
-            if not i_cnt or i_cnt != len(i_list):
-                update(get_upd_lpas_headers_ret(mandt, ebeln, vbeln, posnr, matnr, 'E'))
-                continue
-
-            for i in i_list:
-                if i[i_cols.zimgc].upper() != 'Y':
-                    g_ret = 'E'
-                    h_ret = 'E'
-                    break
-            update(get_upd_lpas_headers_ret(mandt, ebeln, vbeln, posnr, matnr, h_ret))
-        update(get_upd_lpas_group_ret(mandt, ebeln, vbeln, g_ret))
-
-    logging.info(f'작업 결과 갱신 종료')
 
 
 def next_job():
@@ -175,11 +110,68 @@ def next_job():
             # LPAS_ORDER_I 로부터 작업 조회
             posnr = h[h_cols.posnr]
             matnr = h[h_cols.matnr]
-            i_cnt = h[h_cols.image_cnt]
+            i_cnt = h[h_cols.i_cnt]
             i_list, i_cols = get_lpas_items(mandt, ebeln, vbeln, posnr, matnr)
             if i_cnt != len(i_list):
                 break
             ret = i_list
+
+
+async def update_status(period=1):
+    logging.info(f'서버 상태 갱신 시작')
+    change = server_status()[0]
+
+    ok = ready_cont()[2]
+    while ok():
+        await aio.sleep(period)
+        change()
+
+    logging.info(f'서버 상태 갱신 종료')
+
+
+async def update_result(period=1):
+    logging.info(f'작업 결과 갱신 시작')
+    get_info = server_status()[1]
+
+    ok = ready_cont()[2]
+    while ok():
+        await aio.sleep(period)
+        if not (info := get_info()):
+            logging.info(f'없음.. info')
+            continue
+        if info['status'] != _.active:
+            logging.info(f'없음.. status=|{info["status"]}|')
+            continue
+
+        # LPAS_ORDER_G 로부터 작업 조회
+        name = info['name']
+        sql, g_cols = get_sql_lpas_group(name, None, get_state_group_run())
+        if not (g := query_one(sql)):
+            logging.info(f'없음.. sql=|{sql}|')
+            continue
+        mandt = g[g_cols.mandt]
+        ebeln = g[g_cols.ebeln]
+        vbeln = g[g_cols.vbeln]
+        logging.info(f'G 읽음, mandt=|{mandt}| ebeln=|{ebeln}| vbeln=|{vbeln}|')
+
+        # LPAS_ORDER_H 로부터 작업 조회
+        h_list, h_cols = get_lpas_headers(mandt, ebeln, vbeln)
+        if not len(h_list):
+            update(get_upd_err_lpas_group(mandt, ebeln, vbeln))
+            logging.info(f'H 없음, mandt=|{mandt}| ebeln=|{ebeln}| vbeln=|{vbeln}|')
+            continue
+
+        ret = get_state_group_yes()
+        for h in h_list:
+            zimgc = h[h_cols.zimgc]
+            if not (not zimgc or zimgc.strip() == '' or zimgc.upper() == get_state_group_yes()):
+                ret = get_state_group_err()
+                break
+
+        update(get_upd_lpas_group_ret(mandt, ebeln, vbeln, ret))
+        logging.info(f'G 갱신, mandt=|{mandt}| ebeln=|{ebeln}| vbeln=|{vbeln}| zimgc=|{ret}|')
+
+    logging.info(f'작업 결과 갱신 종료')
 
 
 async def get_job(job_q):
@@ -189,7 +181,7 @@ async def get_job(job_q):
     r = next(g)
     logging.info(f'작업을 읽기 위한 제너레이터 생성=|{r}|')
 
-    _, stop, ok = ready_cont()
+    ok = ready_cont()[2]
     while ok():
         info = {}
         while ok():
@@ -216,15 +208,16 @@ async def get_job(job_q):
 
     get_connect()[1]()
     logging.info(f'작업 지시 종료')
-    stop()
 
 
 async def proc_job(cq, mq, jq):
     logging.info(f'작업 진행 시작')
 
-    _, stop, ok = ready_cont()
+    ok = ready_cont()[2]
     while ok():
+        await aio.sleep(0.1)
         try:
+            logging.info(f'작업 큐 대기')
             job = jq.get()
             logging.info(f'작업 수신=|{job}|')
             # ...
@@ -236,7 +229,6 @@ async def proc_job(cq, mq, jq):
             await aio.sleep(1)
 
     logging.info(f'작업 진행 종료')
-    stop()
 
 
 async def starter_proc(cq, mq):
@@ -250,13 +242,13 @@ async def starter_proc(cq, mq):
             # 서버의 상태를 읽고 갱신
             t1 = loop.create_task(update_status())
             # 작업의 결과를 갱신
-            # t2 = loop.create_task(update_result())
+            t2 = loop.create_task(update_result())
             # 데이터베이스 연결 및 job 을 읽어서 jq에 송신
-            # t3 = loop.create_task(get_job(jq))
+            t3 = loop.create_task(get_job(jq))
             # jq에서 job을 수신하여 다른 프로세스에게 전달 및 제어
-            # t4 = loop.create_task(proc_job(cq, mq, jq))
-            # ret = await aio.gather(t1, t2, t3, t4)
-            ret = await aio.gather(t1)
+            t4 = loop.create_task(proc_job(cq, mq, jq))
+
+            ret = await aio.gather(t1, t2, t3, t4)
             logging.info(f'스타터 모듈 종료, 재시작=|{ret}|')
             await aio.sleep(1)
 
