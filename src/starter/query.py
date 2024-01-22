@@ -1,3 +1,4 @@
+import logging
 from collections import namedtuple
 
 
@@ -33,14 +34,18 @@ def get_upd_lpas_group(name, newlb=None):
 
 
 def get_upd_lpas_group_ret(mandt, ebeln, vbeln, zimgc):
+    zimgc_sql = f" AND TRIM(ZIMGC) IS NULL " \
+        if zimgc == get_state_group_run() \
+        else f" AND TRIM(ZIMGC) = '{get_state_group_run()}' "
     sql = \
         f" UPDATE LPAS_ORDER_G " \
         f" SET ZIMGC = '{zimgc}' " \
         f" WHERE 1 = 1 " \
-        f" AND TRIM(ZIMGC) IS NULL " \
+        f"{zimgc_sql}" \
         f" AND MANDT = '{mandt}' " \
         f" AND EBELN = '{ebeln}' " \
         f" AND VBELN = '{vbeln}' "
+    logging.debug(f'G update sql =|{sql}|')
     return sql
 
 
@@ -135,7 +140,6 @@ def get_sql_lpas_headers(mandt, ebeln, vbeln):
         f" SELECT {cols_sql} " \
         f" FROM LPAS_ORDER_H " \
         f" WHERE 1 = 1 " \
-        f" AND TRIM(ZIMGC) IS NULL " \
         f" AND MANDT = '{mandt}' " \
         f" AND EBELN = '{ebeln}' " \
         f" AND VBELN = '{vbeln}' "
