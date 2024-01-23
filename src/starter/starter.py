@@ -3,7 +3,7 @@ import logging
 import socket
 
 import conf.constant as _
-from src.comm.comm import ready_cont, get_loop, cache_func
+from src.comm.comm import ready_cont, get_loop, cache_func, ready_queue
 from src.comm.db import get_connect, query_all, query_one, update
 from src.comm.log import console_log
 from src.starter.query import get_sql_lpas_group, get_sql_server_info, get_upd_lpas_group, get_sql_lpas_headers, \
@@ -57,9 +57,16 @@ def server_status():
     return change, get_info
 
 
-async def get_lpas_group(name, task):
+async def get_lpas_group():
+    get_info = server_status()[1]
     ok = ready_cont()[2]
     while ok():
+        if not (info := get_info()):
+            await aio.sleep(1)
+            continue
+        task = info['task']
+        name = info['name']
+
         sql, cols = get_sql_lpas_group(name)
         if g := query_one(sql):
             update(get_upd_run_lpas_group(g[cols.mandt], g[cols.ebeln], g[cols.vbeln]))
@@ -67,7 +74,7 @@ async def get_lpas_group(name, task):
             return g, cols
 
         update(get_upd_lpas_group(name, task))
-        await aio.sleep(0.1)
+        await aio.sleep(1.0)
 
 
 def get_lpas_headers(mandt, ebeln, vbeln):
@@ -87,21 +94,11 @@ def get_lpas_items(mandt, ebeln, vbeln, posnr, matnr):
 
 
 async def next_job():
-    get_info = server_status()[1]
     ok = ready_cont()[2]
     while ok():
         try:
-            if not (info := get_info()):
-                logging.debug(f'서버정보 획득 실패')
-                await aio.sleep(1)
-                continue
-
-            logging.info(f'작업을 읽기 위한 서버 정보 수신=|{info}|')
-            task = info['task']
-            name = info['name']
-
             # LPAS_ORDER_G 로부터 작업 조회
-            ret = await get_lpas_group(name, task)
+            ret = await get_lpas_group()
             if not ok():
                 break
             g, g_cols = ret
@@ -181,8 +178,12 @@ async def update_result(period=0.1):
                 elif zimgc.strip() != '':
                     ret = get_state_group_err()
                     break
+
         if yes_cnt == len(h_list):
+            # todo 2024.0123 by june1
+            #  - 압축파일 생성
             ret = get_state_group_yes()
+
         if ret:
             update(get_upd_lpas_group_ret(mandt, ebeln, vbeln, ret))
             logging.info(f'G 갱신, mandt=|{mandt}| ebeln=|{ebeln}| vbeln=|{vbeln}| zimgc=|{ret}|')
@@ -196,18 +197,15 @@ async def get_job(job_q):
     ok = ready_cont()[2]
     while ok():
         async for task in next_job():
-            logging.info(f'작업을 읽음=|{task}|')
             while ok():
                 try:
                     job_q.put_nowait(task)
-                    logging.info(f'작업을 전달=|{task}|')
                     break
                 except aio.QueueFull:
                     logging.error(f'큐가 가득참')
-                    await aio.sleep(1.0)
                 except Exception as e:
                     logging.error(f'작업 지시 실패=|{e}|')
-                    await aio.sleep(1.0)
+                await aio.sleep(1.0)
 
     logging.info(f'작업 지시 종료')
     return 'ok'
@@ -215,21 +213,31 @@ async def get_job(job_q):
 
 async def proc_job(cq, mq, jq):
     logging.info(f'작업 진행 시작')
+    send_cq, recv_cq, close_cq = ready_queue(*cq)
+    send_mq, recv_mq, close_mq = ready_queue(*mq)
+
     ok = ready_cont()[2]
     while ok():
         try:
             job = jq.get_nowait()
-            logging.info(f'작업 수신=|{job}|')
-            # ...
-            # 작업 진행
-            # ...
+            logging.info(f'job=|{job}|')
+            # todo 2024.0123 by june1
+            #  -
+            while ok():
+                if not send_cq(job):
+                    await aio.sleep(1)
+                    continue
+                logging.info(f'작업 송신=|{job}|')
+                break
         except aio.QueueEmpty:
-            await aio.sleep(1.0)
+            pass
         except Exception as e:
             logging.error(f'큐에서 작업 읽기 실패=|{e}|')
-            await aio.sleep(1.0)
+        await aio.sleep(0.1)
 
     logging.info(f'작업 진행 종료')
+    close_cq()
+    close_mq()
     return 'ok'
 
 

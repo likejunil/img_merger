@@ -45,7 +45,7 @@ def get_upd_lpas_group_ret(mandt, ebeln, vbeln, zimgc):
         f" AND MANDT = '{mandt}' " \
         f" AND EBELN = '{ebeln}' " \
         f" AND VBELN = '{vbeln}' "
-    logging.debug(f'G update sql =|{sql}|')
+    logging.debug(f'{sql}')
     return sql
 
 
@@ -100,6 +100,7 @@ def get_sql_server_info(hostname):
         f" FROM ENGINE_SERVER " \
         f" WHERE HOSTNAME = '{hostname}' "
 
+    logging.debug(f'|{sql}|')
     return sql, cols_tpl
 
 
@@ -122,6 +123,7 @@ def get_sql_lpas_group(name=None, newlb=None, zimgc=None):
         f" {server_sql} " \
         f" {newlb_sql} "
 
+    logging.debug(f'|{sql}|')
     return sql, cols_tpl
 
 
@@ -144,6 +146,7 @@ def get_sql_lpas_headers(mandt, ebeln, vbeln):
         f" AND EBELN = '{ebeln}' " \
         f" AND VBELN = '{vbeln}' "
 
+    logging.debug(f'|{sql}|')
     return sql, cols_tpl
 
 
@@ -181,6 +184,7 @@ def get_sql_lpas_items(mandt, ebeln, vbeln, posnr, matnr):
         f" AND POSNR = '{posnr}' " \
         f" AND MATNR = '{matnr}' "
 
+    logging.debug(f'|{sql}|')
     return sql, cols_tpl
 
 

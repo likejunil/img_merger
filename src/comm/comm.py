@@ -91,7 +91,6 @@ def msg_queue(mq=None):
     return send_q, close_q
 
 
-@cache_func
 def ready_queue(sq=None, rq=None):
     logging.info(f'큐 초기화 작업')
     _sq, _rq = sq, rq
@@ -99,19 +98,23 @@ def ready_queue(sq=None, rq=None):
     def send_q(msg):
         try:
             _sq.put_nowait(msg)
+            return True
         except Full:
-            logging.error(f'Queue 가 가득 찼음')
-            pass
+            logging.debug(f'Queue 가 가득 찼음')
+            return False
         except Exception as e:
             logging.error(e)
+            return False
 
     def recv_q():
         try:
             return _rq.get_nowait()
         except Empty:
-            pass
+            logging.debug(f'Queue 가 비었음')
+            return False
         except Exception as e:
             logging.error(e)
+            return False
 
     def close_q():
         _sq.close()

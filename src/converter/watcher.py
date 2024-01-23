@@ -17,7 +17,7 @@ class Watcher(FileSystemEventHandler):
 
     def __init__(self, src_dir, proc):
         super().__init__()
-        logging.info(f'|{src_dir}| 입력 디렉토리 모니터링 인스턴스 생성')
+        logging.info(f'|{src_dir}| 입력 디렉토리 와쳐 인스턴스 생성')
         self.src_dir = src_dir
         self.proc = proc
         self.filename = None
@@ -58,7 +58,7 @@ class Watcher(FileSystemEventHandler):
         return False, None
 
     async def run_proc(self):
-        logging.info(f'모니터 스케줄 시작 =|{self.src_dir}|')
+        logging.info(f'와쳐 스케줄 시작 =|{self.src_dir}|')
         self.observer.schedule(self, self.src_dir, recursive=True)
         self.observer.start()
         while self._ok:
@@ -68,7 +68,7 @@ class Watcher(FileSystemEventHandler):
         self._ok = False
         self.observer.stop()
         self.observer.join()
-        logging.info(f'모니터 스케줄 종료 =|{self.src_dir}|')
+        logging.info(f'와쳐 스케줄 종료 =|{self.src_dir}|')
 
     def __del__(self):
         # self.stop_proc()

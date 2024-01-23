@@ -4,7 +4,6 @@ import logging
 import os
 import threading
 from multiprocessing import Process
-from time import sleep
 from uuid import uuid4
 
 import segno
@@ -20,7 +19,6 @@ from reportlab.pdfgen import canvas
 from conf.conf import config as conf
 from conf.constant import pdf, eps
 from src.comm.comm import ready_cont, get_loop, tm, ready_queue
-from src.comm.log import console_log, get_log_level
 from src.comm.util import exec_command
 from src.converter.watcher import Watcher
 
@@ -541,7 +539,7 @@ def convert(filename):
 
 
 async def do_convert(watcher):
-    _, _, ok = ready_cont()
+    ok = ready_cont()[2]
     while ok():
         b, r = watcher.get_ret()
         if b:
@@ -552,9 +550,8 @@ async def do_convert(watcher):
 
 
 async def thread_main(path, proc):
-    console_log(get_log_level())
-    loop = get_loop()
     watcher = Watcher(path, proc)
+    loop = get_loop()
     t1 = loop.create_task(watcher.run_proc())
     t2 = loop.create_task(do_convert(watcher))
     logging.info(f'태스크 생성 완료')
@@ -570,8 +567,8 @@ def thread_proc(path, proc):
 async def run_converter(send_q, recv_q):
     proc = convert
     in_path = os.path.join(conf.root_path, conf.in_path)
+
     # 메인 쓰레드만이 시그널 등록을 할 수 있음
-    _, _, ok = ready_cont()
     t_list = []
     logging.info(f'총 |{conf.path_count}|개의 디렉토리 모니터링')
     for i in range(conf.path_count):
@@ -580,8 +577,14 @@ async def run_converter(send_q, recv_q):
         t_list.append(t)
         t.start()
 
+    ok = ready_cont()[2]
     while ok():
-        sleep(1)
+        if d := recv_q():
+            # todo 2024.0123 by june1
+            #  - 수신한 데이터를 바탕으로 이미지 파일을 찾아서 특정 디렉토리에 복사
+            logging.info(f'수신 정보=|{d}|')
+            continue
+        await aio.sleep(1)
 
     for t in t_list:
         t.terminate()
@@ -595,44 +598,6 @@ async def converter_proc(sq, rq):
     await run_converter(send_q, recv_q)
     logging.info(f'컨버터 모듈 종료')
     close_q()
-
-
-def test():
-    from treepoem import generate_barcode as gen_bar
-
-    # def generate_and_print(gtin_, serial_number_, expiry_date_, batch_number_):
-    def generate_and_print(data_):
-        # Generate datamatrix
-        datamatrix = gen_bar(
-            barcode_type='gs1datamatrix',
-            # data=f"(01){gtin_}(21){serial_number_}(17){expiry_date_}(10){batch_number_}",
-            data=data_,
-            options={"parsefnc": True, "format": "square", "version": "36x36"}
-        )
-
-        # Resize datamatrix to desired size
-        dm_size_px = (120, 120)
-        datamatrix = datamatrix.resize(dm_size_px, Image.NEAREST)
-
-        # Create white picture
-        picture_size_px = (200, 200)
-        picture = Image.new('L', picture_size_px, color='white')
-
-        # Position the datamatrix
-        barcode_position_px = (40, 40)
-        picture.paste(datamatrix, barcode_position_px)
-
-        # Save the image
-        picture.save("datamatrix.png")
-
-    # gtin = "01234567890128"
-    # serial_number = "01234567891011"
-    # expiry_date = "250731"
-    # batch_number = "DATAMATRIXTEST"
-    # generate_and_print(gtin, serial_number, expiry_date, batch_number)
-
-    data = "(01)08808563401119(21)5&4TOm5+.Uw'l(91)EE09(92)e/RE1wbSABu6LdbXkBRmOWB2rw1EU6NjEYshQQ2MiAs="
-    generate_and_print(data)
 
 
 if __name__ == '__main__':

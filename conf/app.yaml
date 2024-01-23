@@ -2,7 +2,7 @@
 commom:
   # log info
   log:
-    debug: True
+    debug: False
     log_time: "00:00"
 
   # db info
