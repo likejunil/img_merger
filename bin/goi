@@ -40,27 +40,19 @@ start() {
 
 stop() {
     PID=`ps -ef | grep "${PROC}" | grep -v grep | awk '{print $2}'`
+
     printf "  1. 현재 실행중인 프로세스의 pid를 확인합니다.\n"
+    read -d "" -ra pid <<< "$PID"
+	  count=${#pid[@]}
 
-    if [ ${PID} ]; then
-        # IFS 값을 개행문자로 설정
-        # 문자열을 IFS 기준으로 나누어 배열로 저장
-        IFS=$"\n"
-        read -ra lines <<< "${PID}"
-
-        # 배열 순회 및 적용
-        for line in "${lines[@]}"; do
-            if [ ${line} ]; then
-                printf "  2. 종료 시그널을 전송합니다.(pid=${line})\n"
-
-                kill -TERM ${line}
-                if [ $? -eq 0 ]; then
-                    printf "  3. 프로세스가 성공적으로 종료되었습니다.\n"
-                else
-                    printf "  3. 프로세스를 종료시키지 못했습니다.\n"
-                fi
-            fi
-        done
+    if [ ${count} -gt 0 ]; then
+        printf "  2. 종료 시그널을 전송합니다.\n"
+		    ps -ef | grep "${PROC}" | grep -v grep | awk '{print $2}' | xargs kill -TERM
+        if [ $? -eq 0 ]; then
+        	  printf "  3. 프로세스가 성공적으로 종료되었습니다.\n"
+        else
+        	  printf "  3. 프로세스를 종료시키지 못했습니다.\n"
+        fi
     else
         printf "  2. 실행중인 프로세스가 없습니다.\n"
     fi 

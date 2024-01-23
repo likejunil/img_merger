@@ -7,8 +7,8 @@ TARGET=$1
 # ------------------------------
 # 프로세스 상태 출력 함수
 print_info() {
-    PROC1=`ps -ef | grep "${TARGET}" | grep -v grep | grep -v psl | grep -v /usr/bin/python2`
-    PROC2=`ps aux | grep "${TARGET}" | grep -v grep | grep -v psl | grep -v /usr/bin/python2`
+    PROC1=`ps -ef | grep "${TARGET}" | grep -v grep | grep -v psl | grep -v /usr/bin/python2 | grep -v /usr/sbin/tuned`
+    PROC2=`ps aux | grep "${TARGET}" | grep -v grep | grep -v psl | grep -v /usr/bin/python2 | grep -v /usr/sbin/tuned`
 
     printf "==================================================================================================\n"
     printf "UID        PID  PPID  C STIME TTY          TIME CMD\n"

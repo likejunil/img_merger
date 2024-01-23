@@ -25,9 +25,8 @@ else
     # --------------------------
     # 제거할 대상 개수 파악
     # --------------------------
-    RET=`ps -ef | grep python | grep "${TARGET}" | grep -v grep | grep -v "/usr/bin/python2" | grep -v stop | awk '{print $2}'`
+    RET=`ps -ef | grep python | grep "${TARGET}" | grep -v grep | grep -v "/usr/bin/python2" | grep -v "/usr/sbin/tuned" | grep -v "stop" | awk '{print $2}'`
     read -d "" -ra pid <<< "$RET"
-
     count=${#pid[@]}
     printf "\n :${count}개의 대상이 존재"
 
@@ -36,13 +35,13 @@ else
     # --------------------------
     if [ ${count} -gt 1 ]; then
         printf "\n :제거 대상이 너무 많음, ${count}개\n\n"
-        ps -ef | grep python | grep "${TARGET}" | grep -v grep
+        ps -ef | grep python | grep "${TARGET}" | grep -v grep | grep -v "/usr/bin/python2" | grep -v "/usr/sbin/tuned"
         printf "\n"
 
         read -n1 -s -p "  :모두 제거?(y/n) => " answer
 
         if [ ${answer} == 'y' ]; then
-            ps -ef | grep python | grep "${TARGET}" | grep -v grep | awk '{print $2}' | xargs kill -TERM
+            ps -ef | grep python | grep "${TARGET}" | grep -v grep | grep -v "/usr/bin/python2" | grep -v "/usr/sbin/tuned" | awk '{print $2}' | xargs kill -TERM
             if [ $? -eq 0 ]; then
                 printf "종료 성공\n\n"
             else
