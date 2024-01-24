@@ -110,6 +110,7 @@ def get_sql_lpas_group(name=None, newlb=None, zimgc=None):
         'ebeln',
         'vbeln',
         'newlb',
+        'lbpodat',
     ]
     cols_sql, cols_tpl = get_sql_and_nt(col_list)
     zimgc_sql = f" AND ZIMGC = '{zimgc}' " if zimgc else " AND TRIM(ZIMGC) IS NULL "
@@ -153,10 +154,14 @@ def get_sql_lpas_headers(mandt, ebeln, vbeln):
 def get_sql_lpas_items(mandt, ebeln, vbeln, posnr, matnr):
     col_list = [
         'l_type',
+        # "IMAGE", "BARCODE", "TEXT", "QRCODE", "DMX",
         'l_pri',
+        # 낮은 숫자가 먼저 밑에 그려져야 함
         'l_coordi_x',
         'l_coordi_y',
+        # 좌측 위로부터 x, y 좌표
         'l_rotate',
+        # 시계방향으로 회전
         'b_width',
         'b_height',
         'i_filename',

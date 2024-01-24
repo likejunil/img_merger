@@ -3,8 +3,10 @@ import logging
 import socket
 
 import conf.constant as _
+from conf.conf import config as conf
 from src.comm.comm import ready_cont, get_loop, cache_func, ready_queue
 from src.comm.db import get_connect, query_all, query_one, update
+from src.comm.help import get_zip_path
 from src.comm.log import console_log
 from src.starter.query import get_sql_lpas_group, get_sql_server_info, get_upd_lpas_group, get_sql_lpas_headers, \
     get_sql_lpas_items, get_upd_lpas_group_ret, get_upd_run_lpas_group, get_state_group_run, get_state_group_yes, \
@@ -162,6 +164,7 @@ async def update_result(period=0.1):
         mandt = g[g_cols.mandt]
         ebeln = g[g_cols.ebeln]
         vbeln = g[g_cols.vbeln]
+        lbpodat = g[g_cols.lbpodat]
 
         # LPAS_ORDER_H 로부터 작업 조회
         h_list, h_cols = get_lpas_headers(mandt, ebeln, vbeln)
@@ -180,6 +183,7 @@ async def update_result(period=0.1):
                     break
 
         if yes_cnt == len(h_list):
+            zip_path = get_zip_path()
             # todo 2024.0123 by june1
             #  - 압축파일 생성
             ret = get_state_group_yes()

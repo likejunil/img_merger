@@ -391,7 +391,7 @@ def get_task_info():
                 },
                 {
                     'type_': 'img',
-                    'name': 'SPACE_1',
+                    'name': 'GLP_G3_SPACE_1',
                     'coordi': (0.1, 0.1),
                     'size': (35, 21),
                     'rotate': 0,
@@ -399,7 +399,7 @@ def get_task_info():
                 },
                 {
                     'type_': 'img',
-                    'name': 'SPACE_2',
+                    'name': 'GLP_G3_SPACE_2',
                     'coordi': (0, 0),
                     'size': (89.3, 3),
                     'rotate': 0,

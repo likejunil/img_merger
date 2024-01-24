@@ -104,8 +104,8 @@ def test_2():
 
 
 def test_3():
-    a = '  aa '
-    print(f'|{a.strip()}|')
+    a = '/abc/123.txt'
+    print(os.path.basename(a))
 
 
 if __name__ == '__main__':

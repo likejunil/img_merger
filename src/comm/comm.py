@@ -126,7 +126,7 @@ def ready_queue(sq=None, rq=None):
 def tm(t=None):
     if not t:
         t = time()
-    return dt.fromtimestamp(t).strftime('%H%M%S.%f')[:-3]
+    return dt.fromtimestamp(t).strftime('%H%M%S%f')[:-3]
 
 
 def lock_run(proc_name=""):
