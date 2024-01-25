@@ -3,10 +3,9 @@ import logging
 import socket
 
 import conf.constant as _
-from conf.conf import config as conf
 from src.comm.comm import ready_cont, get_loop, cache_func, ready_queue
 from src.comm.db import get_connect, query_all, query_one, update
-from src.comm.help import get_zip_path
+from src.comm.help import get_zip_path, get_pdf_path, make_zip_files
 from src.comm.log import console_log
 from src.starter.query import get_sql_lpas_group, get_sql_server_info, get_upd_lpas_group, get_sql_lpas_headers, \
     get_sql_lpas_items, get_upd_lpas_group_ret, get_upd_run_lpas_group, get_state_group_run, get_state_group_yes, \
@@ -145,6 +144,16 @@ async def update_status(period=1):
     return 'ok'
 
 
+# 함수 사용 예
+def make_zip(mandt, ebeln, lbpodat):
+    # ZIP/{yyyymmdd}/{mandt}_{ebeln}.zip
+    zip_path = get_zip_path(lbpodat)
+    zip_file = f'{zip_path}/{mandt}_{ebeln}.zip'
+    # PDF/{yyyymmdd}/{mandt}_{ebeln}_{vbeln}_{posnr}_{matnr}.pdf
+    pdf_path = get_pdf_path(lbpodat)
+    make_zip_files(zip_file, pdf_path, f'{mandt}_{ebeln}', 'pdf')
+
+
 async def update_result(period=0.1):
     logging.info(f'작업 결과 갱신 시작')
     get_info = server_status()[1]
@@ -183,9 +192,7 @@ async def update_result(period=0.1):
                     break
 
         if yes_cnt == len(h_list):
-            zip_path = get_zip_path()
-            # todo 2024.0123 by june1
-            #  - 압축파일 생성
+            make_zip(mandt, ebeln, lbpodat)
             ret = get_state_group_yes()
 
         if ret:
@@ -275,9 +282,9 @@ async def starter_proc(cq, mq):
 
 
 def test():
-    console_log()
     aio.run(starter_proc(None, None))
 
 
 if __name__ == '__main__':
+    console_log()
     test()

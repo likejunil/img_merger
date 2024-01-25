@@ -6,7 +6,7 @@ from reportlab.pdfgen import canvas
 from conf.conf import config as conf
 from conf.constant import pdf
 from src.comm.comm import tm
-from src.converter.ghost import fit_image_to_pdf
+from src.converter.images import fit_image_to_pdf
 
 
 def change_ext(filename, ext=pdf):

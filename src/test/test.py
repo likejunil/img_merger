@@ -104,8 +104,9 @@ def test_2():
 
 
 def test_3():
-    a = '/abc/123.txt'
-    print(os.path.basename(a))
+    from datetime import datetime as dt
+    ret = dt.now().strftime('%Y%m%d')
+    print(ret)
 
 
 if __name__ == '__main__':
