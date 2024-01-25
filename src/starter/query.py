@@ -3,8 +3,13 @@ from collections import namedtuple
 
 
 ############################
-#
+# lpas_order_g,h,i 테이블의 zimgc 컬럼 상태값
 ############################
+def get_state_group_init():
+    # return 'I'
+    return ''
+
+
 def get_state_group_run():
     return 'R'
 
@@ -17,6 +22,15 @@ def get_state_group_err():
     return 'E'
 
 
+def get_state_header_init():
+    # return 'I'
+    return ''
+
+
+def get_state_item_yes():
+    return 'Y'
+
+
 ############################
 # update
 ############################
@@ -27,14 +41,17 @@ def get_upd_lpas_group(name, newlb=None):
         f" SET SERVER = '{name}' " \
         f" WHERE 1 = 1 " \
         f" AND ROWNUM = 1 " \
-        f" AND TRIM(ZIMGC) IS NULL " \
+        f" AND (TRIM(ZIMGC) IS NULL OR TRIM(ZIMGC) = '{get_state_group_init()}')" \
         f" AND TRIM(SERVER) IS NULL " \
         f" {newlb_sql} "
+    logging.debug(f'{sql}')
     return sql
 
 
 def get_upd_lpas_group_ret(mandt, ebeln, vbeln, zimgc):
-    zimgc_sql = f" AND TRIM(ZIMGC) IS NULL " \
+    # zimgc 의 값을 R 으로 갱신하려면, zimgc 가 초기화 상태여야 한다.
+    # zimgc 의 값을 R 이외의 값으로 갱신하려면, zimgc 가 R 상태여야 한다.
+    zimgc_sql = f" AND (TRIM(ZIMGC) IS NULL OR TRIM(ZIMGC) = '{get_state_group_init()}')" \
         if zimgc == get_state_group_run() \
         else f" AND TRIM(ZIMGC) = '{get_state_group_run()}' "
     sql = \
@@ -66,12 +83,13 @@ def get_upd_lpas_headers_ret(mandt, ebeln, vbeln, posnr, matnr, ret):
         f" UPDATE LPAS_ORDER_H " \
         f" SET ZIMGC = '{ret}' " \
         f" WHERE 1 = 1 " \
-        f" AND TRIM(ZIMGC) IS NULL " \
+        f" AND (TRIM(ZIMGC) IS NULL OR TRIM(ZIMGC) = '{get_state_header_init()}')" \
         f" AND MANDT = '{mandt}' " \
         f" AND EBELN = '{ebeln}' " \
         f" AND VBELN = '{vbeln}' " \
         f" AND POSNR = '{posnr}' " \
         f" AND MATNR = '{matnr}' "
+    logging.debug(f'{sql}')
     return sql
 
 
@@ -100,7 +118,7 @@ def get_sql_server_info(hostname):
         f" FROM ENGINE_SERVER " \
         f" WHERE HOSTNAME = '{hostname}' "
 
-    logging.debug(f'|{sql}|')
+    logging.debug(f'{sql}')
     return sql, cols_tpl
 
 
@@ -113,7 +131,7 @@ def get_sql_lpas_group(name=None, newlb=None, zimgc=None):
         'lbpodat',
     ]
     cols_sql, cols_tpl = get_sql_and_nt(col_list)
-    zimgc_sql = f" AND ZIMGC = '{zimgc}' " if zimgc else " AND TRIM(ZIMGC) IS NULL "
+    zimgc_sql = f" AND ZIMGC = '{zimgc}' " if zimgc else f" AND (TRIM(ZIMGC) IS NULL OR TRIM(ZIMGC) = '{get_state_group_init()}') "
     server_sql = f" AND SERVER = '{name}' " if name else ""
     newlb_sql = f" AND NEWLB = '{newlb}' " if newlb else ""
     sql = \
@@ -124,7 +142,7 @@ def get_sql_lpas_group(name=None, newlb=None, zimgc=None):
         f" {server_sql} " \
         f" {newlb_sql} "
 
-    logging.debug(f'|{sql}|')
+    logging.debug(f'{sql}')
     return sql, cols_tpl
 
 
@@ -147,7 +165,7 @@ def get_sql_lpas_headers(mandt, ebeln, vbeln):
         f" AND EBELN = '{ebeln}' " \
         f" AND VBELN = '{vbeln}' "
 
-    logging.debug(f'|{sql}|')
+    logging.debug(f'{sql}')
     return sql, cols_tpl
 
 
@@ -182,14 +200,14 @@ def get_sql_lpas_items(mandt, ebeln, vbeln, posnr, matnr):
         f" SELECT {cols_sql} " \
         f" FROM LPAS_ORDER_I " \
         f" WHERE 1 = 1 " \
-        f" AND TRIM(ZIMGC) = 'Y' " \
+        f" AND TRIM(ZIMGC) = '{get_state_item_yes()}' " \
         f" AND MANDT = '{mandt}' " \
         f" AND EBELN = '{ebeln}' " \
         f" AND VBELN = '{vbeln}' " \
         f" AND POSNR = '{posnr}' " \
         f" AND MATNR = '{matnr}' "
 
-    logging.debug(f'|{sql}|')
+    logging.debug(f'{sql}')
     return sql, cols_tpl
 
 

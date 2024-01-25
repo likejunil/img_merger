@@ -1,9 +1,12 @@
 import asyncio as aio
 import logging
+import pprint
 import socket
+from multiprocessing import Queue
+from queue import Full
 
 import conf.constant as _
-from src.comm.comm import ready_cont, get_loop, cache_func, ready_queue
+from src.comm.comm import ready_cont, get_loop, cache_func
 from src.comm.db import get_connect, query_all, query_one, update
 from src.comm.help import get_zip_path, get_pdf_path, make_zip_files
 from src.comm.log import console_log
@@ -222,24 +225,25 @@ async def get_job(job_q):
     return 'ok'
 
 
-async def proc_job(cq, mq, jq):
+async def proc_job(cq, jq):
     logging.info(f'작업 진행 시작')
-    send_cq, recv_cq, close_cq = ready_queue(*cq)
-    send_mq, recv_mq, close_mq = ready_queue(*mq)
-
     ok = ready_cont()[2]
     while ok():
         try:
             job = jq.get_nowait()
-            logging.info(f'job=|{job}|')
-            # todo 2024.0123 by june1
-            #  -
             while ok():
-                if not send_cq(job):
-                    await aio.sleep(1)
-                    continue
-                logging.info(f'작업 송신=|{job}|')
-                break
+                try:
+                    cq.put_nowait(job)
+                    logging.info(f'변환 모듈에게 작업 송신\n{pprint.pformat(job)}')
+                    break
+
+                except Full:
+                    logging.debug(f'Queue 가 가득 찼음')
+                except Exception as e:
+                    logging.error(e)
+                await aio.sleep(1)
+            continue
+
         except aio.QueueEmpty:
             pass
         except Exception as e:
@@ -247,12 +251,10 @@ async def proc_job(cq, mq, jq):
         await aio.sleep(0.1)
 
     logging.info(f'작업 진행 종료')
-    close_cq()
-    close_mq()
     return 'ok'
 
 
-async def starter_proc(cq, mq):
+async def starter_proc(cq):
     logging.info(f'스타터 모듈 시작')
     jq = aio.Queue()
     loop = get_loop()
@@ -267,7 +269,7 @@ async def starter_proc(cq, mq):
             # 데이터베이스 연결 및 job 을 읽어서 jq에 송신
             t3 = loop.create_task(get_job(jq))
             # jq에서 job을 수신하여 다른 프로세스에게 전달 및 제어
-            t4 = loop.create_task(proc_job(cq, mq, jq))
+            t4 = loop.create_task(proc_job(cq, jq))
 
             ret = await aio.gather(t1, t2, t3, t4)
             logging.info(f'스타터 모듈 종료, 재시작=|{ret}|')
@@ -279,10 +281,35 @@ async def starter_proc(cq, mq):
             await aio.sleep(1)
 
     logging.info(f'스타터 모듈 종료')
+    cq.close()
+
+
+async def test_sub(q):
+    from queue import Empty
+    ok = ready_cont()[2]
+    while ok():
+        try:
+            d = q.get_nowait()
+            logging.info(f'데이터 수신=|{d}|')
+        except Empty:
+            logging.debug(f'Queue 가 비었음')
+            await aio.sleep(1)
+        except Exception as e:
+            logging.error(e)
+            await aio.sleep(1)
+
+
+async def test_main():
+    q = Queue()
+    loop = get_loop()
+    t1 = loop.create_task(starter_proc(q))
+    t2 = loop.create_task(test_sub(q))
+    ret = await aio.gather(t1, t2)
+    logging.info(f'테스트 결과=|{ret}|')
 
 
 def test():
-    aio.run(starter_proc(None, None))
+    aio.run(test_main())
 
 
 if __name__ == '__main__':

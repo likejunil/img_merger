@@ -13,6 +13,7 @@ from conf.conf import config as conf
 from src.comm.comm import ready_cont, get_loop, cache_func
 from src.comm.log import init_log, get_log_level, manage_logfile
 from src.converter.converter import converter_proc
+from src.merger.merger import merger_proc
 from src.starter.starter import starter_proc
 
 
@@ -154,15 +155,15 @@ def proc(get_procs, schedule_proc=None, clean_proc=None, msg_q=None):
 
 
 def main_proc():
-    # starter 모듈 입장에서..
-    c_sq, c_rq = Queue(), Queue()
-    m_sq, m_rq = Queue(), Queue()
+    # cq 는 스타터 모듈이 컨버터 모듈에게 송신하는 큐
+    # mq 는 컨버터 모듈이 머저 모듈에게 송신하는 큐
+    cq, mq = Queue(), Queue()
 
     def get_procs():
         proc_list = [
-            ('starter', child_strategy_run, (starter_proc, ((c_sq, c_rq), (m_sq, m_rq)))),
-            ('converter', child_strategy_run, (converter_proc, (c_rq, c_sq))),
-            # ('merger', child_strategy_run, (merger_proc, (m_rq, m_sq))),
+            ('starter', child_strategy_run, (starter_proc, (cq,))),
+            ('converter', child_strategy_run, (converter_proc, (cq, mq))),
+            ('merger', child_strategy_run, (merger_proc, (mq,))),
         ]
         return proc_list
 
@@ -177,10 +178,8 @@ def main_proc():
             schedule.every().day.at(tm_info).do(func, *args)
 
     def clean_proc():
-        c_sq.close()
-        c_rq.close()
-        m_sq.close()
-        m_rq.close()
+        cq.close()
+        mq.close()
 
     # proc(get_procs, schedule_proc, clean_proc, mq)
     proc(get_procs, schedule_proc, clean_proc)

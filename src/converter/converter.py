@@ -2,6 +2,7 @@ import asyncio as aio
 import json
 import logging
 import os
+import pprint
 import threading
 from multiprocessing import Process, Queue
 from time import sleep
@@ -416,15 +417,31 @@ async def run_converter(send_q, recv_q):
         t.start()
 
     sleep(1)
+    limit_cnt = 3
     while ok():
         if d := recv_q():
-            logging.info(f'수신 정보=|{d}|')
+            d_msg = pprint.pformat(d)
+            logging.info(f'스타터로부터 정보 수신=|{d_msg}|')
             # todo 2024.0123 by june1
             #   - jpg, png, eps, pdf 이미지를 pdf 로 변환
             #       . 수신한 데이터를 바탕으로 이미지 파일을 찾아서 in_files 하위 디렉토리에 복사
             #       . 각 프로세스에 차례대로 분배
             #   -
+
+            fail_cnt = 0
+            while ok():
+                if send_q(d):
+                    logging.info(f'머저에게 정보 송신=|{d_msg}|')
+                    break
+
+                # 머저에게 데이터 송신 실패
+                fail_cnt += 1
+                if fail_cnt > limit_cnt:
+                    logging.error(f'머저에게 정보 송신 실패(처리 필요), 데이터=|{d_msg}|')
+                    break
+                await aio.sleep(1)
             continue
+
         await aio.sleep(1)
 
     for t in t_list:
@@ -433,9 +450,9 @@ async def run_converter(send_q, recv_q):
         t.join()
 
 
-async def converter_proc(sq, rq):
+async def converter_proc(rq, wq):
     logging.info(f'컨버터 모듈 시작')
-    send_q, recv_q, close_q = ready_queue(sq, rq)
+    send_q, recv_q, close_q = ready_queue(wq, rq)
     await run_converter(send_q, recv_q)
     logging.info(f'컨버터 모듈 종료')
     close_q()

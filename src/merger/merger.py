@@ -1,5 +1,8 @@
+import asyncio as aio
 import logging
 import os
+import pprint
+from queue import Empty
 from time import sleep
 
 import PyPDF2
@@ -8,7 +11,7 @@ from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 
 from conf.conf import config as conf
-from src.comm.comm import ready_cont, ready_queue
+from src.comm.comm import ready_cont
 from src.comm.util import exec_command
 
 
@@ -721,12 +724,12 @@ def resize_data(src_list, info_list, size):
     return out_list
 
 
-async def run_merger(send_q, recv_q):
+async def run_merger2(rq):
     ok = ready_cont()[2]
     while ok():
         try:
             # 작업 정보 획득
-            info = get_task_info()
+            info = get_task_info(rq)
 
             # 출력 정보
             out_data = info.get('output')
@@ -766,12 +769,26 @@ async def run_merger(send_q, recv_q):
             break
 
 
-async def merger_proc(sq, rq):
+async def run_merger(rq):
+    ok = ready_cont()[2]
+    while ok():
+        try:
+            d = rq.get_nowait()
+            logging.info(f'컨버터로부터 데이터 수신=|{pprint.pformat(d)}|')
+            # ....
+            continue
+        except Empty:
+            logging.error(f'큐가 비었음')
+        except Exception as e:
+            logging.error(e)
+        await aio.sleep(1)
+
+
+async def merger_proc(rq):
     logging.info(f'머저 모듈 시작')
-    send_q, recv_q, close_q = ready_queue(sq, rq)
-    await run_merger(send_q, recv_q)
+    await run_merger(rq)
     logging.info(f'머저 모듈 종료')
-    close_q()
+    rq.close()
 
 
 def test():
