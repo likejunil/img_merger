@@ -223,7 +223,7 @@ async def get_job(job_q):
                     job_q.put_nowait(job)
                     break
                 except aio.QueueFull:
-                    logging.error(f'큐가 가득참')
+                    logging.debug(f'큐가 가득참')
                 except Exception as e:
                     logging.error(f'작업 지시 실패=|{e}|')
                 await aio.sleep(1.0)
@@ -277,7 +277,7 @@ async def proc_job(cq, jq):
                     break
 
                 except Full:
-                    logging.debug(f'Queue 가 가득 찼음')
+                    logging.debug(f'큐가 가득참')
                 except Exception as e:
                     logging.error(e)
                 await aio.sleep(1)
@@ -321,6 +321,7 @@ async def starter_proc(cq):
 
     logging.info(f'스타터 모듈 종료')
     cq.close()
+    return 'ok'
 
 
 async def test_sub(q):
@@ -336,6 +337,7 @@ async def test_sub(q):
         except Exception as e:
             logging.error(e)
             await aio.sleep(1)
+    return 'ok'
 
 
 async def test_main():

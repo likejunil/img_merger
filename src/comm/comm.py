@@ -80,7 +80,7 @@ def msg_queue(mq=None):
         try:
             _mq.put_nowait(msg)
         except Full:
-            logging.error(f'Queue 가 가득 찼음')
+            logging.error(f'큐가 가득참')
             pass
         except Exception as e:
             logging.error(e)
@@ -100,7 +100,7 @@ def ready_queue(sq=None, rq=None):
             _sq.put_nowait(msg)
             return True
         except Full:
-            logging.debug(f'Queue 가 가득 찼음')
+            logging.debug(f'큐가 가득참')
             return False
         except Exception as e:
             logging.error(e)
@@ -110,7 +110,7 @@ def ready_queue(sq=None, rq=None):
         try:
             return _rq.get_nowait()
         except Empty:
-            logging.debug(f'Queue 가 비었음')
+            logging.debug(f'큐가 비었음')
             return False
         except Exception as e:
             logging.error(e)

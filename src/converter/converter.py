@@ -5,7 +5,7 @@ import os
 import pprint
 import threading
 from multiprocessing import Process, Queue
-from time import sleep
+from queue import Full, Empty
 from uuid import uuid4
 
 import segno
@@ -416,7 +416,6 @@ async def run_converter(send_q, recv_q):
         t_list.append(t)
         t.start()
 
-    sleep(1)
     limit_cnt = 3
     while ok():
         if d := recv_q():
@@ -456,59 +455,342 @@ async def converter_proc(rq, wq):
     await run_converter(send_q, recv_q)
     logging.info(f'컨버터 모듈 종료')
     close_q()
+    return 'ok'
+
+
+async def test_sub1(q):
+    def get_data():
+        data = {
+            'input': {
+                'count': 20,
+                'key': '4410',
+                'src': [
+                    {
+                        'align': None,
+                        'coordi': (None, None),
+                        'font': None,
+                        'font_color': (None, None, None),
+                        'font_size': None,
+                        'name': '/lpas/Engine/data/src_files/Template/HK/GLB_G3.pdf',
+                        'priotiry': 1,
+                        'rotate': None,
+                        'size': (240.0, 80.0),
+                        'text': None,
+                        'type_': 'IMAGE',
+                        'valign': None
+                    },
+                    {
+                        'align': None,
+                        'coordi': (38.37, 38.37),
+                        'font': None,
+                        'font_color': (None, None, None),
+                        'font_size': None,
+                        'name': '/lpas/Engine/data/src_files/images/HK/productName/HK_127B_productName.eps',
+                        'priotiry': 12,
+                        'rotate': None,
+                        'size': (144.0, 27.0),
+                        'text': None,
+                        'type_': 'IMAGE',
+                        'valign': None},
+                    {
+                        'align': None,
+                        'coordi': (35.0, 35.0),
+                        'font': None,
+                        'font_color': (None, None, None),
+                        'font_size': None,
+                        'name': '/lpas/Engine/data/src_files/images/image1/HK/HK_K127B_image1.eps',
+                        'priotiry': 2,
+                        'rotate': None,
+                        'size': (75.0, 40.5),
+                        'text': None,
+                        'type_': 'IMAGE',
+                        'valign': None
+                    },
+                    {
+                        'align': None,
+                        'coordi': (35.0, 35.0),
+                        'font': None,
+                        'font_color': (None, None, None),
+                        'font_size': None,
+                        'name': '/lpas/Engine/data/src_files/images/image2/HK/HK_K127B_image2.eps',
+                        'priotiry': 2,
+                        'rotate': None,
+                        'size': (54.3, 18.0),
+                        'text': None,
+                        'type_': 'IMAGE',
+                        'valign': None
+                    },
+                    {
+                        'align': None,
+                        'coordi': (87.0, 87.0),
+                        'font': None,
+                        'font_color': (None, None, None),
+                        'font_size': None,
+                        'name': '/lpas/Engine/data/src_files/images/HK/logo/HANKOOK_logo_hori.eps',
+                        'priotiry': 12,
+                        'rotate': None,
+                        'size': (95.0, 18.0),
+                        'text': None,
+                        'type_': 'IMAGE',
+                        'valign': None
+                    },
+                    {
+                        'align': None,
+                        'coordi': (11.0, 11.0),
+                        'font': None,
+                        'font_color': (None, None, None),
+                        'font_size': None,
+                        'name': '/lpas/Engine/data/src_files/images/HK/logo/HANKOOK_logo_verti.eps',
+                        'priotiry': 12,
+                        'rotate': None,
+                        'size': (17.0, 74.0),
+                        'text': None,
+                        'type_': 'IMAGE',
+                        'valign': None
+                    },
+                    {
+                        'align': None,
+                        'coordi': (0.1, 0.1),
+                        'font': None,
+                        'font_color': (None, None, None),
+                        'font_size': None,
+                        'name': '/lpas/Engine/data/src_files/images/HK/assist/GLB_G3_SPACE_1.eps',
+                        'priotiry': 3,
+                        'rotate': None,
+                        'size': (35.0, 21.0),
+                        'text': None,
+                        'type_': 'IMAGE',
+                        'valign': None
+                    },
+                    {
+                        'align': None,
+                        'coordi': (None, None),
+                        'font': None,
+                        'font_color': (None, None, None),
+                        'font_size': None,
+                        'name': '/lpas/Engine/data/src_files/images/HK/assist/GLB_G3_SPACE_2.eps',
+                        'priotiry': 3,
+                        'rotate': None,
+                        'size': (89.3, 3.0),
+                        'text': None,
+                        'type_': 'IMAGE',
+                        'valign': None
+                    },
+                    {
+                        'align': None,
+                        'coordi': (35.1, 35.1),
+                        'font': None,
+                        'font_color': (None, None, None),
+                        'font_size': None,
+                        'name': '/lpas/Engine/data/src_files/images/HK/assist/LINE_hori.eps',
+                        'priotiry': 12,
+                        'rotate': None,
+                        'size': (147.0, 0.2),
+                        'text': None,
+                        'type_': 'IMAGE',
+                        'valign': None
+                    },
+                    {
+                        'align': None,
+                        'coordi': (35.1, 35.1),
+                        'font': None,
+                        'font_color': (None, None, None),
+                        'font_size': None,
+                        'name': '/lpas/Engine/data/src_files/images/HK/assist/LINE_verti.eps',
+                        'priotiry': 12,
+                        'rotate': None,
+                        'size': (0.2, 56.0),
+                        'text': None,
+                        'type_': 'IMAGE',
+                        'valign': None
+                    },
+                    {
+                        'align': None,
+                        'coordi': (183.3, 183.3),
+                        'font': None,
+                        'font_color': (None, None, None),
+                        'font_size': None,
+                        'name': '/lpas/Engine/data/src_files/images/HK/picto/HK_K127B_picto.eps',
+                        'priotiry': 12,
+                        'rotate': None,
+                        'size': (32.42, 40.94),
+                        'text': None,
+                        'type_': 'IMAGE',
+                        'valign': None
+                    },
+                    {
+                        'align': None,
+                        'coordi': (178.8, 178.8),
+                        'font': None,
+                        'font_color': (None, None, None),
+                        'font_size': None,
+                        'name': '/lpas/Engine/data/src_files/images/HK/barcode/8808563461533.png',
+                        'priotiry': 12,
+                        'rotate': None,
+                        'size': (40.0, 15.5),
+                        'text': '8808563461533',
+                        'type_': 'BARCODE',
+                        'valign': None
+                    },
+                    {
+                        'align': 'center',
+                        'coordi': (37.0, 37.0),
+                        'font': 'Helvetica-Bold',
+                        'font_color': (None, None, None),
+                        'font_size': 39.0,
+                        'name': None,
+                        'priotiry': 99,
+                        'rotate': None,
+                        'size': (140.0, 14.0),
+                        'text': '235/65R18 91Y XL',
+                        'type_': 'TEXT',
+                        'valign': 'top'
+                    },
+                    {
+                        'align': 'right',
+                        'coordi': (29.5, 29.5),
+                        'font': 'Helvetica',
+                        'font_color': (None, None, None),
+                        'font_size': 16.0,
+                        'name': None,
+                        'priotiry': 99,
+                        'rotate': 90,
+                        'size': (44.6, 5.85),
+                        'text': '235/65R18 91Y XL',
+                        'type_': 'TEXT',
+                        'valign': 'top'
+                    },
+                    {
+                        'align': 'center',
+                        'coordi': (39.0, 39.0),
+                        'font': 'Helvetica',
+                        'font_color': (None, None, None),
+                        'font_size': 9.0,
+                        'name': None,
+                        'priotiry': 99,
+                        'rotate': None,
+                        'size': (140.0, 8.5),
+                        'text': 'Pleasure cross point between performance and '
+                                'emotion',
+                        'type_': 'TEXT',
+                        'valign': 'top'
+                    },
+                    {
+                        'align': 'left',
+                        'coordi': (29.3, 29.3),
+                        'font': 'Helvetica-Bold',
+                        'font_color': (None, None, None),
+                        'font_size': 16.0,
+                        'name': None,
+                        'priotiry': 99,
+                        'rotate': 90,
+                        'size': (21.0, 6.2),
+                        'text': 'K127B',
+                        'type_': 'TEXT',
+                        'valign': 'top'
+                    },
+                    {
+                        'align': 'center',
+                        'coordi': (182.0, 182.0),
+                        'font': 'Helvetica-heavy',
+                        'font_color': (None, None, None),
+                        'font_size': 20.0,
+                        'name': None,
+                        'priotiry': 99,
+                        'rotate': None,
+                        'size': (34.6, 8.3),
+                        'text': '1234567',
+                        'type_': 'TEXT',
+                        'valign': 'top'
+                    },
+                    {
+                        'align': 'right',
+                        'coordi': (3.6, 3.6),
+                        'font': 'Helvetica-heavy',
+                        'font_color': (None, None, None),
+                        'font_size': 24.0,
+                        'name': None,
+                        'priotiry': 99,
+                        'rotate': 90,
+                        'size': (44.0, 9.5),
+                        'text': '1234567',
+                        'type_': 'TEXT',
+                        'valign': 'top'
+                    },
+                    {
+                        'align': 'center',
+                        'coordi': (185.3, 185.3),
+                        'font': 'Helvetica',
+                        'font_color': (None, None, None),
+                        'font_size': 7.0,
+                        'name': None,
+                        'priotiry': 99,
+                        'rotate': None,
+                        'size': (27.7, 2.8),
+                        'text': 'NOT FOR SALE IN JAPAN',
+                        'type_': 'TEXT',
+                        'valign': 'top'
+                    },
+                    {
+                        'align': 'left',
+                        'coordi': (3.5, 3.5),
+                        'font': 'Helvetica',
+                        'font_color': (None, None, None),
+                        'font_size': 5.0,
+                        'name': None,
+                        'priotiry': 99,
+                        'rotate': 90,
+                        'size': (20.3, 1.85),
+                        'text': 'J-0001044483-230915',
+                        'type_': 'TEXT',
+                        'valign': 'top'
+                    }
+                ]
+            },
+            'output': {
+                'name': '/LPAS/lpas/data/done_files/PDF/20230901/110_9999036431_9999036431_000010_1024881.pdf',
+                'size': (80, 240)
+            }
+        }
+        return data
+
+    try:
+        q.put_nowait(get_data())
+    except Full:
+        logging.debug(f'큐가 가득참')
+    except Exception as e:
+        logging.error(f'작업 송신 실패=|{e}|')
+    return 'ok'
+
+
+async def test_sub2(q):
+    ok = ready_cont()[2]
+    while ok():
+        try:
+            ret = q.get_nowait()
+            logging.info(f'{pprint.pformat(ret)}')
+        except Empty:
+            logging.debug(f'큐가 비었음')
+        except Exception as e:
+            logging.error(f'결과 수신 실패=|{e}|')
+        await aio.sleep(1)
+    return 'ok'
+
+
+async def test_main():
+    sq, rq = Queue(), Queue()
+    loop = get_loop()
+    t1 = loop.create_task(converter_proc(rq, sq))
+    t2 = loop.create_task(test_sub1(rq))
+    t3 = loop.create_task(test_sub2(sq))
+    ret = await aio.gather(t1, t2, t3)
+    logging.info(f'테스트 결과=|{ret}|')
 
 
 def test():
-    def get_data():
-        # 'l_type',
-        # 'l_pri',
-        # 'l_coordi_x',
-        # 'l_coordi_y',
-        # 'l_rotate',
-        # 'b_width',
-        # 'b_height',
-        # 'i_filename',
-        # 'i_position',
-        # 'i_rate',
-        # 't_font',
-        # 't_fontsize',
-        # 't_font_r',
-        # 't_font_g',
-        # 't_font_b',
-        # 't_text',
-        # 't_align',
-        # 't_valign',
-        # 'zimgc',
-        data = [
-            (
-                'IMAGE',
-                1,
-                0.0,
-                0.0,
-                0,
-                240.0,
-                80.0,
-                None,
-                'CE',
-                100.0,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                'Y',
-            ),
-        ]
-        return data
-
-    console_log()
-    sq, rq = Queue(), Queue()
-    sq.put(get_data())
-    aio.run(converter_proc(rq, sq))
+    aio.run(test_main())
 
 
 if __name__ == '__main__':
+    console_log()
     test()
