@@ -2,6 +2,7 @@ import asyncio as aio
 import logging
 import pprint
 import socket
+import uuid
 from multiprocessing import Queue
 from queue import Full
 
@@ -12,7 +13,7 @@ from src.comm.help import get_zip_path, get_pdf_path, make_zip_files
 from src.comm.log import console_log
 from src.starter.query import get_sql_lpas_group, get_sql_server_info, get_upd_lpas_group, get_sql_lpas_headers, \
     get_sql_lpas_items, get_upd_lpas_group_ret, get_upd_run_lpas_group, get_state_group_run, get_state_group_yes, \
-    get_state_group_err, get_upd_err_lpas_group
+    get_state_group_err, get_upd_err_lpas_group, get_col_lpas_items
 
 
 def get_my_info(hostname):
@@ -109,6 +110,7 @@ async def next_job():
             mandt = g[g_cols.mandt]
             ebeln = g[g_cols.ebeln]
             vbeln = g[g_cols.vbeln]
+            lbpodat = g[g_cols.lbpodat]
 
             # LPAS_ORDER_H 로부터 작업 조회
             h_list, h_cols = get_lpas_headers(mandt, ebeln, vbeln)
@@ -120,6 +122,7 @@ async def next_job():
                 # LPAS_ORDER_I 로부터 작업 조회
                 posnr = h[h_cols.posnr]
                 matnr = h[h_cols.matnr]
+                l_size = h[h_cols.l_size].split('*')
                 i_cnt = h[h_cols.i_cnt]
                 i_list, i_cols = get_lpas_items(mandt, ebeln, vbeln, posnr, matnr)
                 if i_cnt != len(i_list):
@@ -129,7 +132,11 @@ async def next_job():
                     if not zimgc or zimgc.strip().upper() != get_state_group_yes():
                         break
 
-                yield i_list
+                o_dict = {
+                    'name': f'{get_pdf_path(lbpodat)}/{mandt}_{ebeln}_{vbeln}_{posnr}_{matnr}.pdf',
+                    'size': (int(l_size[0]), int(l_size[1])),
+                }
+                yield i_list, o_dict
 
         except Exception as e:
             logging.error(f'에러 발생=|{e}|')
@@ -210,10 +217,10 @@ async def get_job(job_q):
     logging.info(f'작업 지시 시작')
     ok = ready_cont()[2]
     while ok():
-        async for task in next_job():
+        async for job in next_job():
             while ok():
                 try:
-                    job_q.put_nowait(task)
+                    job_q.put_nowait(job)
                     break
                 except aio.QueueFull:
                     logging.error(f'큐가 가득참')
@@ -226,15 +233,47 @@ async def get_job(job_q):
 
 
 async def proc_job(cq, jq):
+    def _f(d):
+        return float(d) if d else None
+
+    def _i(d):
+        return int(d) if d else None
+
     logging.info(f'작업 진행 시작')
+    g_cols = get_col_lpas_items(True)
     ok = ready_cont()[2]
     while ok():
         try:
-            job = jq.get_nowait()
+            src = []
+            jobs, o_dict = jq.get_nowait()
+            for job in jobs:
+                src.append({
+                    'type_': job[g_cols.l_type],
+                    'name': job[g_cols.i_filename],
+                    'coordi': (_f(job[g_cols.l_coordi_x]), _f(job[g_cols.l_coordi_x])),
+                    'size': (_f(job[g_cols.b_width]), _f(job[g_cols.b_height])),
+                    'rotate': _i(job[g_cols.l_rotate]),
+                    'priotiry': _i(job[g_cols.l_pri]),
+                    'font': job[g_cols.t_font],
+                    'font_size': _f(job[g_cols.t_fontsize]),
+                    'font_color': (_i(job[g_cols.t_font_r]), _i(job[g_cols.t_font_g]), _i(job[g_cols.t_font_b])),
+                    'text': job[g_cols.t_text],
+                    'align': job[g_cols.t_align].lower() if job[g_cols.t_align] else None,
+                    'valign': job[g_cols.t_valign].lower() if job[g_cols.t_valign] else None,
+                })
             while ok():
                 try:
-                    cq.put_nowait(job)
-                    logging.info(f'변환 모듈에게 작업 송신\n{pprint.pformat(job)}')
+                    key = str(uuid.uuid4())[:4]
+                    jobs_dict = {
+                        'input': {
+                            'key': key,
+                            'count': len(src),
+                            'src': src,
+                        },
+                        'output': o_dict,
+                    }
+                    cq.put_nowait(jobs_dict)
+                    logging.info(f'변환 모듈에게 작업 송신\n{pprint.pformat(jobs_dict)}')
                     break
 
                 except Full:

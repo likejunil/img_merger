@@ -778,7 +778,7 @@ async def run_merger(rq):
             # ....
             continue
         except Empty:
-            logging.error(f'큐가 비었음')
+            logging.debug(f'큐가 비었음')
         except Exception as e:
             logging.error(e)
         await aio.sleep(1)

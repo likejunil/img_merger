@@ -106,12 +106,16 @@ def get_sql_and_nt(col_list):
     return cols_sql, cols_tpl
 
 
-def get_sql_server_info(hostname):
-    col_list = [
+def get_col_server():
+    return [
         'server_name',
         'status',
         'newlb',
     ]
+
+
+def get_sql_server_info(hostname):
+    col_list = get_col_server()
     cols_sql, cols_tpl = get_sql_and_nt(col_list)
     sql = \
         f" SELECT {cols_sql} " \
@@ -122,7 +126,15 @@ def get_sql_server_info(hostname):
     return sql, cols_tpl
 
 
-def get_sql_lpas_group(name=None, newlb=None, zimgc=None):
+def get_cols(col_list, nt=False):
+    if nt:
+        cols_dict = {k: i for i, k in enumerate(col_list)}
+        return namedtuple('Columns', cols_dict.keys())(**cols_dict)
+    else:
+        return col_list
+
+
+def get_col_lpas_group(nt=False):
     col_list = [
         'mandt',
         'ebeln',
@@ -130,6 +142,11 @@ def get_sql_lpas_group(name=None, newlb=None, zimgc=None):
         'newlb',
         'lbpodat',
     ]
+    return get_cols(col_list, nt)
+
+
+def get_sql_lpas_group(name=None, newlb=None, zimgc=None):
+    col_list = get_col_lpas_group()
     cols_sql, cols_tpl = get_sql_and_nt(col_list)
     zimgc_sql = f" AND ZIMGC = '{zimgc}' " if zimgc else f" AND (TRIM(ZIMGC) IS NULL OR TRIM(ZIMGC) = '{get_state_group_init()}') "
     server_sql = f" AND SERVER = '{name}' " if name else ""
@@ -146,7 +163,7 @@ def get_sql_lpas_group(name=None, newlb=None, zimgc=None):
     return sql, cols_tpl
 
 
-def get_sql_lpas_headers(mandt, ebeln, vbeln):
+def get_col_lpas_headers(nt=False):
     col_list = [
         'mandt',
         'ebeln',
@@ -155,7 +172,13 @@ def get_sql_lpas_headers(mandt, ebeln, vbeln):
         'matnr',
         'zimgc',
         'i_cnt',
+        'l_size',
     ]
+    return get_cols(col_list, nt)
+
+
+def get_sql_lpas_headers(mandt, ebeln, vbeln):
+    col_list = get_col_lpas_headers()
     cols_sql, cols_tpl = get_sql_and_nt(col_list)
     sql = \
         f" SELECT {cols_sql} " \
@@ -169,7 +192,7 @@ def get_sql_lpas_headers(mandt, ebeln, vbeln):
     return sql, cols_tpl
 
 
-def get_sql_lpas_items(mandt, ebeln, vbeln, posnr, matnr):
+def get_col_lpas_items(nt=False):
     col_list = [
         'l_type',
         # "IMAGE", "BARCODE", "TEXT", "QRCODE", "DMX",
@@ -192,9 +215,16 @@ def get_sql_lpas_items(mandt, ebeln, vbeln, posnr, matnr):
         't_font_b',
         't_text',
         't_align',
+        # "LEFT", "CENTER", "RIGHT"
         't_valign',
+        # "TOP", "MIDDLE", "BOTTOM"
         'zimgc',
     ]
+    return get_cols(col_list, nt)
+
+
+def get_sql_lpas_items(mandt, ebeln, vbeln, posnr, matnr):
+    col_list = get_col_lpas_items()
     cols_sql, cols_tpl = get_sql_and_nt(col_list)
     sql = \
         f" SELECT {cols_sql} " \

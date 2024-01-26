@@ -104,9 +104,9 @@ def test_2():
 
 
 def test_3():
-    from datetime import datetime as dt
-    ret = dt.now().strftime('%Y%m%d')
-    print(ret)
+    import uuid
+    key = str(uuid.uuid4())[:4]
+    print(key)
 
 
 if __name__ == '__main__':
