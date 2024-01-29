@@ -60,6 +60,7 @@ def ready_conf():
     conf_dict[_.out_path] = path_info[_.out_data][_.path]
     conf_dict[_.done_path] = path_info[_.done_data][_.path]
     conf_dict[_.merged_path] = path_info[_.merged_data][_.path]
+    conf_dict[_.tmp_path] = path_info[_.tmp_data][_.path]
 
     # 바코드 관련
     converter = yml_conf[_.converter]

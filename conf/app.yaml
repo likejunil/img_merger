@@ -40,6 +40,10 @@ path:
   done_data:
     path: "data/done_files"
 
+  # 임시 파일
+  tmp_data:
+    path: "data/tmp_files"
+
 ########################
 monitor:
 

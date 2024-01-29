@@ -1,5 +1,6 @@
 import logging
 import os
+from io import FileIO
 from uuid import uuid4
 
 from PyPDF2 import PdfFileReader, PdfFileWriter
@@ -11,8 +12,7 @@ from src.comm.util import exec_command
 
 
 def get_tmp_name(ext):
-    tmp_path = os.path.join(conf.root_path, conf.data_path, 'tmp_files')
-    tmp_file = os.path.join(f'{tmp_path}', f'{str(uuid4())}{ext}')
+    tmp_file = os.path.join(f'{conf.tmp_path}', f'{str(uuid4())}{ext}')
     logging.info(f'이미지 생성을 위한 임시파일=|{tmp_file}|')
     return tmp_file
 
@@ -38,35 +38,39 @@ def convert_scale(src, dst, size, scale=mm):
     to_width, to_height = to_width * scale, to_height * scale
     with open(src, 'rb') as file:
         if reader := PdfFileReader(file):
-            page = reader.getPage(0)
-            width, height = page.mediaBox.upperRight
-            w_scale = (to_width / float(width))
-            h_scale = (to_height / float(height))
-            command = [
-                'gs',
-                '-sDEVICE=pdfwrite',
-                '-dFIXEDMEDIA',
-                f'-dDEVICEWIDTHPOINTS={to_width}',
-                f'-dDEVICEHEIGHTPOINTS={to_height}',
-                '-o', dst,
-                '-c', f'<</BeginPage {{{w_scale} {h_scale} scale}}>> setpagedevice',
-                '-f', src
-            ]
-            exec_command(command)
+            for page_num in range(reader.numPages):
+                page = reader.getPage(page_num)
+                width, height = page.mediaBox.upperRight
+                w_scale = (to_width / float(width))
+                h_scale = (to_height / float(height))
+                command = [
+                    'gs',
+                    '-sDEVICE=pdfwrite',
+                    '-dFIXEDMEDIA',
+                    f'-dDEVICEWIDTHPOINTS={to_width}',
+                    f'-dDEVICEHEIGHTPOINTS={to_height}',
+                    '-o', dst,
+                    '-c', f'<</BeginPage {{{w_scale} {h_scale} scale}}>> setpagedevice',
+                    '-f', src
+                ]
+                exec_command(command)
+                # 첫번째 페이지만..
+                break
 
 
 def rotate_pdf(input_file, output_file, rotation_angle):
     with open(input_file, 'rb') as file:
-        reader = PdfFileReader(file)
-        writer = PdfFileWriter()
+        if reader := PdfFileReader(file):
+            if writer := PdfFileWriter():
+                for page_num in range(reader.numPages):
+                    page = reader.getPage(page_num)
+                    page.rotateClockwise(-1 * rotation_angle)
+                    writer.addPage(page)
+                    # 첫번째 페이지만..
+                    break
 
-        for page_num in range(reader.numPages):
-            page = reader.getPage(page_num)
-            page.rotateClockwise(-1 * rotation_angle)
-            writer.addPage(page)
-
-        with open(output_file, 'wb') as output:
-            writer.write(output)
+                with FileIO(output_file, 'wb') as output:
+                    writer.write(output)
 
 
 def to_pdf(src, dst):

@@ -48,6 +48,9 @@ done_path = 'done_path'
 merged_data = 'merged_data'
 merged_path = 'merged_path'
 
+tmp_data = 'tmp_data'
+tmp_path = 'tmp_path'
+
 monitor = 'monitor'
 starter = 'starter'
 converter = 'converter'

@@ -130,7 +130,7 @@ async def run_converter(send_q, recv_q, jq):
                 # 텍스트의 경우 파일 이름을 임의로 생성하여
                 elif t == 'text':
                     try:
-                        f_name = f'{get_dst_path()}/{s_key}_{tm()}_{str(uuid4())[:4]}.txt'
+                        f_name = f'{get_dst_path()}/{s_key}_{tm()}_{str(uuid4())[:8]}.txt'
                         with open(f_name, 'wt') as f:
                             json.dump(s, f, indent=4, ensure_ascii=False)
                             logging.info(f'텍스트 파일 생성=|{f_name}|')
@@ -247,192 +247,13 @@ async def converter_proc(rq, wq):
     return 'ok'
 
 
-# async def converter_proc(rq, wq):
-#     logging.info(f'컨버터 모듈 시작')
-#     register_fonts()
-#     send_q, recv_q, close_q = ready_queue(wq, rq)
-#     await run_converter(send_q, recv_q)
-#     logging.info(f'컨버터 모듈 종료')
-#     close_q()
-#     return 'ok'
-
-
 async def test_sub1(q):
     def get_data():
         data = {
             'input': {
-                # 'count': 20,
-                'count': 11,
+                'count': 9,
                 'key': '4410',
                 'src': [
-                    {
-                        'align': None,
-                        'coordi': (None, None),
-                        'font': None,
-                        'font_color': (None, None, None),
-                        'font_size': None,
-                        'name': '/lpas/Engine/data/src_files/Template/HK/GLB_G3.pdf',
-                        'priotiry': 1,
-                        'rotate': None,
-                        'size': (240.0, 80.0),
-                        'text': None,
-                        'type_': 'IMAGE',
-                        'valign': None
-                    },
-                    {
-                        'align': None,
-                        'coordi': (38.37, 38.37),
-                        'font': None,
-                        'font_color': (None, None, None),
-                        'font_size': None,
-                        'name': '/lpas/Engine/data/src_files/images/HK/productName/HK_127B_productName.eps',
-                        'priotiry': 12,
-                        'rotate': None,
-                        'size': (144.0, 27.0),
-                        'text': None,
-                        'type_': 'IMAGE',
-                        'valign': None},
-                    {
-                        'align': None,
-                        'coordi': (35.0, 35.0),
-                        'font': None,
-                        'font_color': (None, None, None),
-                        'font_size': None,
-                        'name': '/lpas/Engine/data/src_files/images/image1/HK/HK_K127B_image1.eps',
-                        'priotiry': 2,
-                        'rotate': None,
-                        'size': (75.0, 40.5),
-                        'text': None,
-                        'type_': 'IMAGE',
-                        'valign': None
-                    },
-                    {
-                        'align': None,
-                        'coordi': (35.0, 35.0),
-                        'font': None,
-                        'font_color': (None, None, None),
-                        'font_size': None,
-                        'name': '/lpas/Engine/data/src_files/images/image2/HK/HK_K127B_image2.eps',
-                        'priotiry': 2,
-                        'rotate': None,
-                        'size': (54.3, 18.0),
-                        'text': None,
-                        'type_': 'IMAGE',
-                        'valign': None
-                    },
-                    {
-                        'align': None,
-                        'coordi': (87.0, 87.0),
-                        'font': None,
-                        'font_color': (None, None, None),
-                        'font_size': None,
-                        'name': '/lpas/Engine/data/src_files/images/HK/logo/HANKOOK_logo_hori.eps',
-                        'priotiry': 12,
-                        'rotate': None,
-                        'size': (95.0, 18.0),
-                        'text': None,
-                        'type_': 'IMAGE',
-                        'valign': None
-                    },
-                    {
-                        'align': None,
-                        'coordi': (11.0, 11.0),
-                        'font': None,
-                        'font_color': (None, None, None),
-                        'font_size': None,
-                        'name': '/lpas/Engine/data/src_files/images/HK/logo/HANKOOK_logo_verti.eps',
-                        'priotiry': 12,
-                        'rotate': None,
-                        'size': (17.0, 74.0),
-                        'text': None,
-                        'type_': 'IMAGE',
-                        'valign': None
-                    },
-                    {
-                        'align': None,
-                        'coordi': (0.1, 0.1),
-                        'font': None,
-                        'font_color': (None, None, None),
-                        'font_size': None,
-                        'name': '/lpas/Engine/data/src_files/images/HK/assist/GLB_G3_SPACE_1.eps',
-                        'priotiry': 3,
-                        'rotate': None,
-                        'size': (35.0, 21.0),
-                        'text': None,
-                        'type_': 'IMAGE',
-                        'valign': None
-                    },
-                    {
-                        'align': None,
-                        'coordi': (None, None),
-                        'font': None,
-                        'font_color': (None, None, None),
-                        'font_size': None,
-                        'name': '/lpas/Engine/data/src_files/images/HK/assist/GLB_G3_SPACE_2.eps',
-                        'priotiry': 3,
-                        'rotate': None,
-                        'size': (89.3, 3.0),
-                        'text': None,
-                        'type_': 'IMAGE',
-                        'valign': None
-                    },
-                    {
-                        'align': None,
-                        'coordi': (35.1, 35.1),
-                        'font': None,
-                        'font_color': (None, None, None),
-                        'font_size': None,
-                        'name': '/lpas/Engine/data/src_files/images/HK/assist/LINE_hori.eps',
-                        'priotiry': 12,
-                        'rotate': None,
-                        'size': (147.0, 0.2),
-                        'text': None,
-                        'type_': 'IMAGE',
-                        'valign': None
-                    },
-                    {
-                        'align': None,
-                        'coordi': (35.1, 35.1),
-                        'font': None,
-                        'font_color': (None, None, None),
-                        'font_size': None,
-                        'name': '/lpas/Engine/data/src_files/images/HK/assist/LINE_verti.eps',
-                        'priotiry': 12,
-                        'rotate': None,
-                        'size': (0.2, 56.0),
-                        'text': None,
-                        'type_': 'IMAGE',
-                        'valign': None
-                    },
-                    {
-                        'align': None,
-                        'coordi': (183.3, 183.3),
-                        'font': None,
-                        'font_color': (None, None, None),
-                        'font_size': None,
-                        'name': '/lpas/Engine/data/src_files/images/HK/picto/HK_K127B_picto.eps',
-                        'priotiry': 12,
-                        'rotate': None,
-                        'size': (32.42, 40.94),
-                        'text': None,
-                        'type_': 'IMAGE',
-                        'valign': None
-                    },
-                    """
-                    {
-                        'align': None,
-                        'coordi': (178.8, 178.8),
-                        'font': None,
-                        'font_color': (None, None, None),
-                        'font_size': None,
-                        'name': '/lpas/Engine/data/src_files/images/HK/barcode/8808563461533.png',
-                        'priotiry': 12,
-                        'rotate': None,
-                        'size': (40.0, 15.5),
-                        'text': '8808563461533',
-                        'type_': 'BARCODE',
-                        'valign': None
-                    },
                     {
                         'align': 'center',
                         'coordi': (37.0, 37.0),
@@ -446,6 +267,20 @@ async def test_sub1(q):
                         'text': '235/65R18 91Y XL',
                         'type_': 'TEXT',
                         'valign': 'top'
+                    },
+                    {
+                        'align': None,
+                        'coordi': (178.8, 178.8),
+                        'font': None,
+                        'font_color': (None, None, None),
+                        'font_size': None,
+                        'name': '/lpas/Engine/data/src_files/images/HK/barcode/8808563461533.png',
+                        'priotiry': 12,
+                        'rotate': None,
+                        'size': (40.0, 15.5),
+                        'text': '8808563461533',
+                        'type_': 'BARCODE',
+                        'valign': None
                     },
                     {
                         'align': 'right',
@@ -546,7 +381,6 @@ async def test_sub1(q):
                         'type_': 'TEXT',
                         'valign': 'top'
                     }
-                    """
                 ]
             },
             'output': {
