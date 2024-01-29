@@ -104,9 +104,11 @@ def test_2():
 
 
 def test_3():
-    import uuid
-    key = str(uuid.uuid4())[:4]
-    print(key)
+    key = '51da'
+    command = f"find {conf.data_path} -name '{key}_*' -exec rm -rf {{}} \\;"
+    print(command)
+    import subprocess
+    subprocess.run(command, shell=True, check=True)
 
 
 if __name__ == '__main__':

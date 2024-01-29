@@ -1,12 +1,20 @@
+import logging
 import os
+from uuid import uuid4
 
-from PIL import Image
-from reportlab.pdfgen import canvas
+from PyPDF2 import PdfFileReader, PdfFileWriter
+from reportlab.lib.units import mm
 
 from conf.conf import config as conf
 from conf.constant import pdf
-from src.comm.comm import tm
-from src.converter.images import fit_image_to_pdf
+from src.comm.util import exec_command
+
+
+def get_tmp_name(ext):
+    tmp_path = os.path.join(conf.root_path, conf.data_path, 'tmp_files')
+    tmp_file = os.path.join(f'{tmp_path}', f'{str(uuid4())}{ext}')
+    logging.info(f'이미지 생성을 위한 임시파일=|{tmp_file}|')
+    return tmp_file
 
 
 def change_ext(filename, ext=pdf):
@@ -22,40 +30,90 @@ def get_out_name(filename):
     name, ext = os.path.splitext(base)
     # 출력 디렉토리로 장소를 바꾸어 저장
     # 파일 이름에 시각 정보 추가 (시2분2초2밀리초3)
-    return os.path.join(conf.root_path, conf.out_path, f'{name}_{tm()}{ext}')
+    return os.path.join(conf.root_path, conf.out_path, f'{name}{ext}')
 
 
-def conv_pdf(filename):
-    o_name = get_out_name(filename)
-    os.rename(filename, o_name)
-    return o_name
+def convert_scale(src, dst, size, scale=mm):
+    to_width, to_height = size
+    to_width, to_height = to_width * scale, to_height * scale
+    with open(src, 'rb') as file:
+        if reader := PdfFileReader(file):
+            page = reader.getPage(0)
+            width, height = page.mediaBox.upperRight
+            w_scale = (to_width / float(width))
+            h_scale = (to_height / float(height))
+            command = [
+                'gs',
+                '-sDEVICE=pdfwrite',
+                '-dFIXEDMEDIA',
+                f'-dDEVICEWIDTHPOINTS={to_width}',
+                f'-dDEVICEHEIGHTPOINTS={to_height}',
+                '-o', dst,
+                '-c', f'<</BeginPage {{{w_scale} {h_scale} scale}}>> setpagedevice',
+                '-f', src
+            ]
+            exec_command(command)
 
 
-def conv_eps(filename):
-    # Ghostscript를 사용하여 EPS 파일을 PDF로 변환
-    # Ghostscript("-sDEVICE=pdfwrite", "-dEPSCrop", "-o", o_name, filename)
-    o_name = get_out_name(filename)
-    fit_image_to_pdf(filename, o_name)
-    return o_name
+def rotate_pdf(input_file, output_file, rotation_angle):
+    with open(input_file, 'rb') as file:
+        reader = PdfFileReader(file)
+        writer = PdfFileWriter()
+
+        for page_num in range(reader.numPages):
+            page = reader.getPage(page_num)
+            page.rotateClockwise(-1 * rotation_angle)
+            writer.addPage(page)
+
+        with open(output_file, 'wb') as output:
+            writer.write(output)
 
 
-def conv_png(filename):
-    img = Image.open(filename)
-    o_name = get_out_name(filename)
-    # 이미지의 품질을 유지하기 위해 canvas 사용
-    out = canvas.Canvas(o_name, pagesize=(img.width, img.height))
-    out.drawImage(filename, 0, 0, img.width, img.height)
-    out.save()
-    return o_name
+def to_pdf(src, dst):
+    command = [
+        'inkscape',
+        src,
+        f'--export-filename={dst}',
+    ]
+    exec_command(command)
 
 
-def conv_jpg(filename):
-    # jpg 포맷은 이미 비트맵 형식이므로 벡터 형식으로 변환할 수 없다.
-    # Image 패키지를 사용하여 pdf 로 변환한다.
-    img = Image.open(filename)
-    o_name = get_out_name(filename)
-    img.save(o_name)
-    return o_name
+def png2svg(src, dst):
+    command = [
+        'inkscape',
+        src,
+        '--export-type=svg',
+        f'--export-filename={dst}'
+    ]
+    exec_command(command)
+
+
+def fit_image_to_pdf(src, dst):
+    command = [
+        'gs',
+        '-dNOPAUSE',
+        '-dEPSCrop',
+        '-sDEVICE=pdfwrite',
+        '-o', dst,
+        '-f', src
+    ]
+    exec_command(command)
+
+
+def fit_image_to_eps(src, dst):
+    # -dNOPAUSE: Ghostscript가 각 페이지를 처리한 후 사용자의 입력을 기다리지 않음
+    # -dBATCH; 모든 파일을 처리한 후 Ghostscript가 자동으로 종료
+    # -dEPSCrop: EPS 파일의 내용 중 실제로 중요한 부분만을 추출 (불필요한 여백 삭제)
+    # -sDEVICE=eps2write: EPS 파일로 변환
+    command = [
+        'gs',
+        '-dNOPAUSE',
+        '-dEPSCrop',
+        '-sDEVICE=eps2write',
+        '-o', dst,
+        '-f', src
+    ]
+    exec_command(command)
 
 
 def test():

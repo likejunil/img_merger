@@ -13,7 +13,6 @@ from conf.conf import config as conf
 from src.comm.comm import ready_cont, get_loop, cache_func
 from src.comm.log import init_log, get_log_level, manage_logfile
 from src.converter.converter import converter_proc
-from src.merger.merger import merger_proc
 from src.starter.starter import starter_proc
 
 
@@ -163,7 +162,7 @@ def main_proc():
         proc_list = [
             ('starter', child_strategy_run, (starter_proc, (cq,))),
             ('converter', child_strategy_run, (converter_proc, (cq, mq))),
-            ('merger', child_strategy_run, (merger_proc, (mq,))),
+            # ('merger', child_strategy_run, (merger_proc, (mq,))),
         ]
         return proc_list
 
