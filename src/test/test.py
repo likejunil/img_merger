@@ -104,8 +104,7 @@ def test_2():
 
 
 def test_3():
-    from uuid import uuid4
-    print(uuid4())
+    print(f'{conf.root_path}/{conf.done_path}')
 
 
 if __name__ == '__main__':

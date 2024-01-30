@@ -2,6 +2,8 @@ import asyncio as aio
 import logging
 import os
 import pprint
+from concurrent.futures import ProcessPoolExecutor
+from multiprocessing import Queue
 from queue import Empty
 from time import sleep
 
@@ -11,7 +13,8 @@ from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 
 from conf.conf import config as conf
-from src.comm.comm import ready_cont
+from src.comm.comm import ready_cont, get_loop
+from src.comm.log import console_log
 from src.comm.util import exec_command
 
 
@@ -769,19 +772,23 @@ async def run_merger2(rq):
             break
 
 
+def task_proc(task):
+    logging.debug(f'컨버터로부터 데이터 수신=|{pprint.pformat(task)}|')
+
+
 async def run_merger(rq):
-    ok = ready_cont()[2]
-    while ok():
-        try:
-            d = rq.get_nowait()
-            logging.info(f'컨버터로부터 데이터 수신=|{pprint.pformat(d)}|')
-            # ....
-            continue
-        except Empty:
-            logging.debug(f'큐가 비었음')
-        except Exception as e:
-            logging.error(e)
-        await aio.sleep(1)
+    with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
+        ok = ready_cont()[2]
+        while ok():
+            try:
+                task = rq.get_nowait()
+                executor.submit(task_proc, task)
+                continue
+            except Empty:
+                logging.debug(f'큐가 비었음')
+            except Exception as e:
+                logging.error(e)
+            await aio.sleep(1)
 
 
 async def merger_proc(rq):
@@ -791,9 +798,295 @@ async def merger_proc(rq):
     rq.close()
 
 
+async def test_main():
+    def get_data():
+        data = {
+            'input': {
+                'count': 20,
+                'key': 'ccf3',
+                'src': [
+                    {'align': None,
+                     'coordi': (None, None),
+                     'font': None,
+                     'font_color': (None, None, None),
+                     'font_size': None,
+                     'name': '/lpas/Engine/data/src_files/Template/HK/GLB_G3.pdf',
+                     'priotiry': 1,
+                     'rotate': None,
+                     'size': (240.0, 80.0),
+                     'target': '/LPAS/lpas/data/out_files/ccf3_20240130_160033_194_GLB_G3.pdf',
+                     'text': None,
+                     'type_': 'IMAGE',
+                     'valign': None},
+                    {'align': None,
+                     'coordi': (38.37, 38.37),
+                     'font': None,
+                     'font_color': (None, None, None),
+                     'font_size': None,
+                     'name': '/lpas/Engine/data/src_files/images/HK/productName/HK_K127B_productName.eps',
+                     'priotiry': 12,
+                     'rotate': None,
+                     'size': (144.0, 27.0),
+                     'target': '/LPAS/lpas/data/out_files/ccf3_20240130_160033_194_HK_K127B_productName.pdf',
+                     'text': None,
+                     'type_': 'IMAGE',
+                     'valign': None},
+                    {'align': None,
+                     'coordi': (35.0, 35.0),
+                     'font': None,
+                     'font_color': (None, None, None),
+                     'font_size': None,
+                     'name': '/lpas/Engine/data/src_files/images/HK/image1/HK_K127B_image1.eps',
+                     'priotiry': 2,
+                     'rotate': None,
+                     'size': (75.0, 40.5),
+                     'target': '/LPAS/lpas/data/out_files/ccf3_20240130_160033_195_HK_K127B_image1.pdf',
+                     'text': None,
+                     'type_': 'IMAGE',
+                     'valign': None},
+                    {'align': None,
+                     'coordi': (35.0, 35.0),
+                     'font': None,
+                     'font_color': (None, None, None),
+                     'font_size': None,
+                     'name': '/lpas/Engine/data/src_files/images/HK/image2/HK_K127B_image2.eps',
+                     'priotiry': 2,
+                     'rotate': None,
+                     'size': (54.3, 18.0),
+                     'target': '/LPAS/lpas/data/out_files/ccf3_20240130_160033_196_HK_K127B_image2.pdf',
+                     'text': None,
+                     'type_': 'IMAGE',
+                     'valign': None},
+                    {'align': None,
+                     'coordi': (87.0, 87.0),
+                     'font': None,
+                     'font_color': (None, None, None),
+                     'font_size': None,
+                     'name': '/lpas/Engine/data/src_files/images/HK/logo/HANKOOK_logo_hori.eps',
+                     'priotiry': 12,
+                     'rotate': None,
+                     'size': (95.0, 18.0),
+                     'target': '/LPAS/lpas/data/out_files/ccf3_20240130_160033_197_HANKOOK_logo_hori.pdf',
+                     'text': None,
+                     'type_': 'IMAGE',
+                     'valign': None},
+                    {'align': None,
+                     'coordi': (11.0, 11.0),
+                     'font': None,
+                     'font_color': (None, None, None),
+                     'font_size': None,
+                     'name': '/lpas/Engine/data/src_files/images/HK/logo/HANKOOK_logo_verti.eps',
+                     'priotiry': 12,
+                     'rotate': None,
+                     'size': (17.0, 74.0),
+                     'target': '/LPAS/lpas/data/out_files/ccf3_20240130_160033_197_HANKOOK_logo_verti.pdf',
+                     'text': None,
+                     'type_': 'IMAGE',
+                     'valign': None},
+                    {'align': None,
+                     'coordi': (0.1, 0.1),
+                     'font': None,
+                     'font_color': (None, None, None),
+                     'font_size': None,
+                     'name': '/lpas/Engine/data/src_files/images/HK/assist/GLB_G3_SPACE_1.eps',
+                     'priotiry': 3,
+                     'rotate': None,
+                     'size': (35.0, 21.0),
+                     'target': '/LPAS/lpas/data/out_files/ccf3_20240130_160033_197_GLB_G3_SPACE_1.pdf',
+                     'text': None,
+                     'type_': 'IMAGE',
+                     'valign': None},
+                    {'align': None,
+                     'coordi': (None, None),
+                     'font': None,
+                     'font_color': (None, None, None),
+                     'font_size': None,
+                     'name': '/lpas/Engine/data/src_files/images/HK/assist/GLB_G3_SPACE_2.eps',
+                     'priotiry': 3,
+                     'rotate': None,
+                     'size': (89.3, 3.0),
+                     'target': '/LPAS/lpas/data/out_files/ccf3_20240130_160033_197_GLB_G3_SPACE_2.pdf',
+                     'text': None,
+                     'type_': 'IMAGE',
+                     'valign': None},
+                    {'align': None,
+                     'coordi': (35.1, 35.1),
+                     'font': None,
+                     'font_color': (None, None, None),
+                     'font_size': None,
+                     'name': '/lpas/Engine/data/src_files/images/HK/assist/LINE_hori.eps',
+                     'priotiry': 12,
+                     'rotate': None,
+                     'size': (147.0, 0.2),
+                     'target': '/LPAS/lpas/data/out_files/ccf3_20240130_160033_198_LINE_hori.pdf',
+                     'text': None,
+                     'type_': 'IMAGE',
+                     'valign': None},
+                    {'align': None,
+                     'coordi': (35.1, 35.1),
+                     'font': None,
+                     'font_color': (None, None, None),
+                     'font_size': None,
+                     'name': '/lpas/Engine/data/src_files/images/HK/assist/LINE_verti.eps',
+                     'priotiry': 12,
+                     'rotate': None,
+                     'size': (0.2, 56.0),
+                     'target': '/LPAS/lpas/data/out_files/ccf3_20240130_160033_198_LINE_verti.pdf',
+                     'text': None,
+                     'type_': 'IMAGE',
+                     'valign': None},
+                    {'align': None,
+                     'coordi': (183.3, 183.3),
+                     'font': None,
+                     'font_color': (None, None, None),
+                     'font_size': None,
+                     'name': '/lpas/Engine/data/src_files/images/HK/picto/HK_K127B_picto.eps',
+                     'priotiry': 12,
+                     'rotate': None,
+                     'size': (32.42, 40.94),
+                     'target': '/LPAS/lpas/data/out_files/ccf3_20240130_160033_198_HK_K127B_picto.pdf',
+                     'text': None,
+                     'type_': 'IMAGE',
+                     'valign': None},
+                    {'align': None,
+                     'coordi': (178.8, 178.8),
+                     'font': None,
+                     'font_color': (None, None, None),
+                     'font_size': None,
+                     'name': '/lpas/Engine/data/src_files/images/HK/barcode/barcode1/8808563461533.pdf',
+                     'priotiry': 12,
+                     'rotate': None,
+                     'size': (40.0, 15.5),
+                     'target': '/lpas/Engine/data/src_files/images/HK/barcode/barcode1/8808563461533.pdf',
+                     'text': '8808563461533',
+                     'type_': 'EAN',
+                     'valign': None},
+                    {'align': 'center',
+                     'coordi': (37.0, 37.0),
+                     'font': 'Helvetica-Bold',
+                     'font_color': (None, None, None),
+                     'font_size': 39.0,
+                     'name': None,
+                     'priotiry': 99,
+                     'rotate': None,
+                     'size': (140.0, 14.0),
+                     'target': '/LPAS/lpas/data/out_files/ccf3_20240130_160033_199_d473e118.pdf',
+                     'text': '235/65R18 91Y XL',
+                     'type_': 'TEXT',
+                     'valign': 'top'},
+                    {'align': 'right',
+                     'coordi': (29.5, 29.5),
+                     'font': 'Helvetica',
+                     'font_color': (None, None, None),
+                     'font_size': 16.0,
+                     'name': None,
+                     'priotiry': 99,
+                     'rotate': 90,
+                     'size': (44.6, 5.85),
+                     'target': '/LPAS/lpas/data/out_files/ccf3_20240130_160033_205_5214c635.pdf',
+                     'text': '235/65R18 91Y XL',
+                     'type_': 'TEXT',
+                     'valign': 'top'},
+                    {'align': 'center',
+                     'coordi': (39.0, 39.0),
+                     'font': 'Helvetica',
+                     'font_color': (None, None, None),
+                     'font_size': 9.0,
+                     'name': None,
+                     'priotiry': 99,
+                     'rotate': None,
+                     'size': (140.0, 8.5),
+                     'target': '/LPAS/lpas/data/out_files/ccf3_20240130_160033_205_9e112c6b.pdf',
+                     'text': 'Pleasure cross point between performance and '
+                             'emotion',
+                     'type_': 'TEXT',
+                     'valign': 'top'},
+                    {'align': 'left',
+                     'coordi': (29.3, 29.3),
+                     'font': 'Helvetica-Bold',
+                     'font_color': (None, None, None),
+                     'font_size': 16.0,
+                     'name': None,
+                     'priotiry': 99,
+                     'rotate': 90,
+                     'size': (21.0, 6.2),
+                     'target': '/LPAS/lpas/data/out_files/ccf3_20240130_160033_206_bdffe7cd.pdf',
+                     'text': 'K127B',
+                     'type_': 'TEXT',
+                     'valign': 'top'},
+                    {'align': 'center',
+                     'coordi': (182.0, 182.0),
+                     'font': 'Helvetica-heavy',
+                     'font_color': (None, None, None),
+                     'font_size': 20.0,
+                     'name': None,
+                     'priotiry': 99,
+                     'rotate': None,
+                     'size': (34.6, 8.3),
+                     'target': '/LPAS/lpas/data/out_files/ccf3_20240130_160033_206_0c335d81.pdf',
+                     'text': '1234567',
+                     'type_': 'TEXT',
+                     'valign': 'top'},
+                    {'align': 'right',
+                     'coordi': (3.6, 3.6),
+                     'font': 'Helvetica-heavy',
+                     'font_color': (None, None, None),
+                     'font_size': 24.0,
+                     'name': None,
+                     'priotiry': 99,
+                     'rotate': 90,
+                     'size': (44.0, 9.5),
+                     'target': '/LPAS/lpas/data/out_files/ccf3_20240130_160033_206_79a50bae.pdf',
+                     'text': '1234567',
+                     'type_': 'TEXT',
+                     'valign': 'top'},
+                    {'align': 'center',
+                     'coordi': (185.3, 185.3),
+                     'font': 'Helvetica',
+                     'font_color': (None, None, None),
+                     'font_size': 7.0,
+                     'name': None,
+                     'priotiry': 99,
+                     'rotate': None,
+                     'size': (27.7, 2.8),
+                     'target': '/LPAS/lpas/data/out_files/ccf3_20240130_160033_206_898c6ed7.pdf',
+                     'text': 'NOT FOR SALE IN JAPAN',
+                     'type_': 'TEXT',
+                     'valign': 'top'},
+                    {'align': 'left',
+                     'coordi': (3.5, 3.5),
+                     'font': 'Helvetica',
+                     'font_color': (None, None, None),
+                     'font_size': 5.0,
+                     'name': None,
+                     'priotiry': 99,
+                     'rotate': 90,
+                     'size': (20.3, 1.85),
+                     'target': '/LPAS/lpas/data/out_files/ccf3_20240130_160033_206_07b75d78.pdf',
+                     'text': 'J-0001044483-230915',
+                     'type_': 'TEXT',
+                     'valign': 'top'}
+                ]
+            },
+            'output': {
+                'name': '/LPAS/lpas/data/done_files/PDF/20230901/110_9999036431_9999036431_000010_1024881.pdf',
+                'size': (80, 240)
+            }
+        }
+        return data
+
+    q = Queue()
+    q.put(get_data())
+    loop = get_loop()
+    t1 = loop.create_task(merger_proc(q))
+    ret = await aio.gather(t1)
+    logging.info(f'테스트 결과=|{ret}|')
+
+
 def test():
-    pass
+    aio.run(test_main())
 
 
 if __name__ == '__main__':
+    console_log()
     test()

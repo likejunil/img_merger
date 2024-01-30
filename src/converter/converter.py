@@ -12,8 +12,10 @@ from shutil import copy
 from uuid import uuid4
 
 from conf.conf import config as conf
+from conf.constant import pdf
 from src.comm.comm import ready_cont, get_loop, ready_queue, tm
 from src.comm.log import console_log
+from src.converter.core import change_ext
 from src.converter.fonts import register_fonts
 from src.converter.image import conv_jpg, conv_png, conv_eps, conv_pdf
 from src.converter.qr import conv_bar, conv_qr, conv_dmx
@@ -97,6 +99,7 @@ async def run_converter(send_q, recv_q, jq):
         idx = (idx + 1) % conf.path_count
         return ret
 
+    o_path = f'{conf.root_path}/{conf.out_path}'
     limit_cnt = 3
     while ok():
         if d := recv_q():
@@ -115,9 +118,11 @@ async def run_converter(send_q, recv_q, jq):
                 if (t := s.get('type_', '').lower()) == 'image':
                     try:
                         src = s.get('name')
-                        dst = f'{get_dst_path()}/{s_key}_{tm()}_{os.path.basename(s.get("name"))}'
-                        logging.info(f'이미지 파일 복사, |{src}| => |{dst}|')
-                        copy(src, dst)
+                        i_name = f'{s_key}_{tm()}_{os.path.basename(src)}'
+                        f_name = f'{get_dst_path()}/{i_name}'
+                        s['target'] = change_ext(f'{o_path}/{i_name}', pdf)
+                        logging.debug(f'이미지 파일 복사, |{src}| => |{f_name}|')
+                        copy(src, f_name)
                         count += 1
                         continue
                     except FileNotFoundError as e:
@@ -133,10 +138,12 @@ async def run_converter(send_q, recv_q, jq):
                 # 텍스트의 경우 파일 이름을 임의로 생성
                 elif t == 'text':
                     try:
-                        f_name = f'{get_dst_path()}/{s_key}_{tm()}_{str(uuid4())[:8]}.txt'
+                        i_name = f'{s_key}_{tm()}_{str(uuid4())[:8]}.txt'
+                        f_name = f'{get_dst_path()}/{i_name}'
+                        s['target'] = change_ext(f'{o_path}/{i_name}', pdf)
                         with open(f_name, 'wt') as f:
                             json.dump(s, f, indent=4, ensure_ascii=False)
-                            logging.info(f'텍스트 파일 생성=|{f_name}|')
+                            logging.debug(f'텍스트 파일 생성=|{f_name}|')
                             count += 1
                             continue
                     except IOError as e:
@@ -150,6 +157,7 @@ async def run_converter(send_q, recv_q, jq):
                 # 바코드
                 elif t in ('ean', 'upc', 'qr', 'dmx'):
                     try:
+                        s['target'] = s.get('name')
                         if not os.path.exists(s.get('name')):
                             # 바코드 이미지가 존재하지 않는다면 생성 지시
                             f_name = f'{get_dst_path()}/{s_key}_{tm()}_{str(uuid4())[:8]}.{t}'
@@ -159,11 +167,16 @@ async def run_converter(send_q, recv_q, jq):
                                 logging.info(f'바코드 정보=|{s}|')
                                 count += 1
                                 continue
+                        else:
+                            logging.info(f'이미 바코드 이미지 존재=|{s.get("name")}|')
+                            count += 1
+                            continue
                     except IOError as e:
                         logging.error(f'파일 입출력 오류 발생=|{e}|')
+                        break
                     except Exception as e:
                         logging.error(f'바코드 정보 파일 생성 실패=|{e}|')
-                    break
+                        break
 
                 else:
                     logging.error(f'지원하지 않는 종류의 데이터=|{t}|')
