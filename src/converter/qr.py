@@ -11,130 +11,146 @@ from reportlab.graphics.shapes import Drawing
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 
-from conf.constant import eps, pdf
-from src.converter.core import get_tmp_name, fit_image_to_eps, fit_image_to_pdf, get_out_name, convert_scale
+from conf.conf import config as conf
+from conf.constant import pdf
+from src.comm.log import console_log
+from src.converter.core import convert_scale, get_tmp_name
 
 
-def generate_barcode(number, kind, out_file):
-    def generate_ean():
-        width, height = 240, 120
-        barcode = eanbc.Ean13BarcodeWidget(number)
-        # 바코드 속성 설정
-        barcode.barHeight = 20 * mm
-        barcode.fontSize = 11
+def generate_upc(content, o_file):
+    generate_ean(f'0{content}', o_file)
 
-        c = canvas.Canvas(out_file, pagesize=(width, height))
-        d = Drawing(width, height)
-        d.add(barcode)
-        renderPDF.draw(d, c, 10, 10)
-        c.save()
 
-    generate_ean()
+def generate_ean(content, o_file):
+    # 바코드 생성
+    barcode = eanbc.Ean13BarcodeWidget(content)
+
+    # 바코드 속성 설정
+    barcode.barHeight = 20 * mm
+    barcode.fontSize = 11
+
+    # 바코드 바운딩 박스의 크기를 얻어 Drawing 객체 크기 설정
+    # 캔버스 생성
+    bounds = barcode.getBounds()
+    width = bounds[2] - bounds[0] + 2
+    height = bounds[3] - bounds[1] + 2
+    c = canvas.Canvas(o_file, pagesize=(width, height))
+    d = Drawing(width, height)
+
+    # 바코드 그리기
+    d.add(barcode)
+    renderPDF.draw(d, c, 1, 1)
+    c.save()
 
 
 def conv_bar(filename):
-    def read_bar_info(f_name):
-        try:
-            with open(f_name, 'rt', encoding='utf8') as f:
-                size_json = json.load(f)
-                logging.info(f'|{filename}| 파일로부터 바코드 사이즈 정보 획득=|{size_json}|')
-                # return size_json['width'], size_json['height']
-                return size_json
-        except Exception as e:
-            logging.error(f'바코드 파일 에러 발생=|{e}|')
+    with open(filename, 'rt', encoding='utf8') as f:
+        data = json.load(f)
+        logging.info(f'바코드 이미지 생성을 위한 정보=|{data}|')
 
-    base = os.path.basename(filename)
-    ret = os.path.splitext(base)
-    if len(ret) != 2:
-        logging.error(f'바코드 파일 이름 에러 =|{filename}|')
-        return
-    name, ext = ret
+        # 바코드의 종류
+        kind = data.get('type_').lower()
+        # 바코드의 이미지 크기
+        size = data.get('size')
+        # 바코드의 내용
+        content = data.get('text')
+        # 바코드 이미지 파일 이름
+        o_name = data.get('name')
 
-    if not (bar_info := read_bar_info(filename)):
-        logging.error(f'바코드 사이즈 획득 실패')
-        return
+        # 바코드를 생성하고 임시 파일에 저장
+        if kind == 'ean':
+            generate_ean(content, o_name)
+        elif kind == 'upc':
+            generate_upc(content, o_name)
+        else:
+            logging.error(f'바코드 이미지 생성, 도달할 수 없는 코드')
+            return
 
-    # 바코드의 종류
-    kind = bar_info.get('kind', 'EAN')
-
-    # 바코드의 크기
-    size = bar_info['width'], bar_info['height']
-
-    # 바코드를 생성할 숫자 (길이는 12자리)
-    data = name[-12:]
-    logging.info(f'바코드 생성, 번호=|{data}|')
-
-    # 바코드를 생성하고 임시 파일에 저장
-    tmp_file = get_tmp_name(pdf)
-    generate_barcode(data, kind, tmp_file)
-
-    # 상하좌우 여백 없애기
-    tmp_eps = get_tmp_name(eps)
-    tmp_pdf = get_tmp_name(pdf)
-    fit_image_to_eps(tmp_file, tmp_eps)
-    fit_image_to_pdf(tmp_eps, tmp_pdf)
-
-    # 임시 파일을 읽어서 스케일 조정
-    out_file = get_out_name(filename)
-    convert_scale(tmp_pdf, out_file, size)
-
-    # 임시 파일 삭제
-    os.remove(tmp_file)
-    os.remove(tmp_pdf)
-    os.remove(tmp_eps)
-    return filename
+        # 스케일 조정
+        convert_scale(o_name, size)
+        return o_name
 
 
 def conv_qr(filename):
-    """
     # https://www.keyence.co.kr/ss/products/auto_id/barcode_lecture/basic_2d/qr/
-    """
-    with open(filename, "rt") as f:
-        json_data = json.load(f)
-        content = json_data.get('content')
-        width, height = json_data.get('width'), json_data.get('height')
-        logging.info(f'QR-코드 생성을 위한 정보=|{json_data}|')
+    with open(filename, 'rt', encoding='utf8') as f:
+        data = json.load(f)
+        logging.info(f'qr코드 생성을 위한 정보=|{data}|')
 
-        tmp_file = get_tmp_name(pdf)
+        # qr코드 크기
+        size = data.get('size')
+        # qr코드 내용
+        content = data.get('content')
+        # qr코드 이미지 파일 이름
+        o_name = data.get('name')
+
         qr = segno.make(content)
-        qr.save(tmp_file, kind="pdf")
-        out_file = get_out_name(filename)
-        convert_scale(tmp_file, out_file, (width, height))
-        os.remove(tmp_file)
-        return out_file
+        qr.save(o_name, kind="pdf")
+        convert_scale(o_name, size)
+        return o_name
 
 
-def conv_dmtx(filename):
-    """
+def conv_dmx(filename):
     # https://www.keyence.co.kr/ss/products/auto_id/barcode_lecture/basic_2d/datamatrix/
     # ECC200은 최신 버전의 Data Matrix 코드
     # 코드 크기는 10 x 10셀에서 144 x 144셀까지 24가지(직사각형의 6가지 크기 포함).
-    """
     with open(filename, "rb") as f:
-        # json_data = json.load(f)
-        # width, height = json_data.get('width'), json_data.get('height')
-        # logging.info(f'Data-Matrix 생성을 위한 정보=|{json_data}|')
-        # encoded = encode(json_data.get('content').encode('utf8'))
-        width, height = 22, 22
-        # data = f.read()
-        # data = b'\xe8' + f.read()
-        # data = b'\f' + f.read()
-        # data = b'\x0f' + f.read()
-        data = b'\x1d' + f.read()
-        encoded = encode(data)
-        img = Image.frombytes('RGB', (encoded.width, encoded.height), encoded.pixels)
+        data = json.load(f)
+        logging.info(f'dmx 생성을 위한 정보=|{data}|')
 
-        tmp_file = get_tmp_name(pdf)
-        img.save(tmp_file)
-        out_file = get_out_name(filename)
-        convert_scale(tmp_file, out_file, (width, height))
-        os.remove(tmp_file)
-        return out_file
+        # dmx 크기
+        size = data.get('size')
+        # dmx 내용
+        content = data.get('content')
+        # dmx 파일 이름
+        o_name = data.get('name')
+
+        # dmx 이미지 생성
+        dmx_code = encode(content.encode('utf8'))
+        img = Image.frombytes('RGB', (dmx_code.width, dmx_code.height), dmx_code.pixels)
+        img.save(o_name)
+        convert_scale(o_name, size)
+        return o_name
+
+
+def test_ean(content=None):
+    if not content:
+        content = '8808563461533'
+    o_file = os.path.join(conf.root_path, get_tmp_name(pdf))
+    print(f'파일=|{o_file}| 내용=|{content}|')
+    generate_ean(content, o_file)
+
+
+def test_upc():
+    content = '72527273070'
+    content = f'0{content}'
+    test_ean(content)
+
+
+def test_qr():
+    content = "https://www.hankooktire.com/kr/ko/home.html"
+    o_file = os.path.join(conf.root_path, get_tmp_name(pdf))
+    print(f'파일=|{o_file}| 내용=|{content}|')
+    qr = segno.make(content)
+    qr.save(o_file, kind="pdf")
+
+
+def test_dmx():
+    content = 'Flying car, To the moon~! 123.987'
+    o_file = os.path.join(conf.root_path, get_tmp_name(pdf))
+    print(f'파일=|{o_file}| 내용=|{content}|')
+    dmx_code = encode(content.encode('utf8'))
+    img = Image.frombytes('RGB', (dmx_code.width, dmx_code.height), dmx_code.pixels)
+    img.save(o_file)
 
 
 def test():
-    pass
+    test_ean()
+    test_upc()
+    test_qr()
+    test_dmx()
 
 
 if __name__ == '__main__':
+    console_log()
     test()

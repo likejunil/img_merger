@@ -29,11 +29,11 @@ def get_out_name(filename):
     # 이름과 확장자를 분리한 후
     name, ext = os.path.splitext(base)
     # 출력 디렉토리로 장소를 바꾸어 저장
-    # 파일 이름에 시각 정보 추가 (시2분2초2밀리초3)
     return os.path.join(conf.root_path, conf.out_path, f'{name}{ext}')
 
 
-def convert_scale(src, dst, size, scale=mm):
+def convert_scale(src, size, scale=mm):
+    dst = os.path.join(conf.root_path, get_tmp_name(pdf))
     to_width, to_height = size
     to_width, to_height = to_width * scale, to_height * scale
     with open(src, 'rb') as file:
@@ -55,22 +55,27 @@ def convert_scale(src, dst, size, scale=mm):
                 ]
                 exec_command(command)
                 # 첫번째 페이지만..
+                os.remove(src)
+                os.rename(dst, src)
                 break
 
 
-def rotate_pdf(input_file, output_file, rotation_angle):
-    with open(input_file, 'rb') as file:
+def rotate_pdf(src, angle):
+    dst = os.path.join(conf.root_path, get_tmp_name(pdf))
+    with open(src, 'rb') as file:
         if reader := PdfFileReader(file):
             if writer := PdfFileWriter():
                 for page_num in range(reader.numPages):
                     page = reader.getPage(page_num)
-                    page.rotateClockwise(-1 * rotation_angle)
+                    page.rotateClockwise(-1 * angle)
                     writer.addPage(page)
                     # 첫번째 페이지만..
                     break
 
-                with FileIO(output_file, 'wb') as output:
+                with FileIO(dst, 'wb') as output:
                     writer.write(output)
+                os.remove(src)
+                os.rename(dst, src)
 
 
 def to_pdf(src, dst):

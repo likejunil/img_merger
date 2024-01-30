@@ -1,12 +1,10 @@
 import json
 import logging
-import os
 
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 
-from conf.constant import pdf
-from src.converter.core import get_tmp_name, convert_scale, rotate_pdf, get_out_name
+from src.converter.core import convert_scale, rotate_pdf, get_out_name
 
 
 def text2pdf(data, o_name):
@@ -37,7 +35,7 @@ def text2pdf(data, o_name):
 
     # 텍스트의 너비
     # mm 단위를 point 로 변환하여 비교
-    text_width = c.stringWidth(content, font, font_size) / mm
+    text_width = round(c.stringWidth(content, font, font_size) / mm, 2)
     logging.info(f'텍스트의 너비=|{text_width}| 텍스트박스의 너비=|{width}|')
     old_width = width
 
@@ -80,22 +78,16 @@ def text2pdf(data, o_name):
     # 텍스트 이미지 축소
     if need_resize_flag:
         logging.info(f'텍스트의 폭 축소 적용')
-        tmp_name = get_tmp_name(pdf)
-        convert_scale(o_name, tmp_name, (old_width, height))
-        os.remove(o_name)
-        os.rename(tmp_name, o_name)
+        convert_scale(o_name, (old_width, height))
 
     # 텍스트 이미지 회전
     if degree := data.get('rotate'):
         logging.info(f'텍스트의 방향 전환')
-        tmp_name = get_tmp_name(pdf)
-        rotate_pdf(o_name, tmp_name, degree)
-        os.remove(o_name)
-        os.rename(tmp_name, o_name)
+        rotate_pdf(o_name, degree)
 
 
 def conv_txt(filename):
-    with open(filename, 'rt') as f:
+    with open(filename, 'rt', encoding='utf8') as f:
         data = json.load(f)
         o_name = get_out_name(filename)
         logging.info(f'텍스트 이미지 생성을 위한 정보=|{data}|, 출력파일=|{o_name}|')

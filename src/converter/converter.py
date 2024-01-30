@@ -16,7 +16,7 @@ from src.comm.comm import ready_cont, get_loop, ready_queue, tm
 from src.comm.log import console_log
 from src.converter.fonts import register_fonts
 from src.converter.image import conv_jpg, conv_png, conv_eps, conv_pdf
-from src.converter.qr import conv_bar, conv_qr, conv_dmtx
+from src.converter.qr import conv_bar, conv_qr, conv_dmx
 from src.converter.text import conv_txt
 from src.converter.watcher import Watcher
 
@@ -29,9 +29,10 @@ def convert(filename):
         'eps': conv_eps,
         'pdf': conv_pdf,
         'txt': conv_txt,
-        'bar': conv_bar,
+        'ean': conv_bar,
+        'upc': conv_bar,
         'qr': conv_qr,
-        'dmtx': conv_dmtx,
+        'dmx': conv_dmx,
     }
 
     try:
@@ -108,6 +109,7 @@ async def run_converter(send_q, recv_q, jq):
             s_list = i_dict.get('src')
             fail_flag = False
 
+            count = 0
             for s in s_list:
                 # 이미지의 경우 원본 이미지를 목적 디렉토리로 복사
                 if (t := s.get('type_', '').lower()) == 'image':
@@ -116,6 +118,7 @@ async def run_converter(send_q, recv_q, jq):
                         dst = f'{get_dst_path()}/{s_key}_{tm()}_{os.path.basename(s.get("name"))}'
                         logging.info(f'이미지 파일 복사, |{src}| => |{dst}|')
                         copy(src, dst)
+                        count += 1
                         continue
                     except FileNotFoundError as e:
                         logging.error(f'원본 파일 없음=|{e}|')
@@ -127,13 +130,14 @@ async def run_converter(send_q, recv_q, jq):
                         logging.error(f'복사 실패=|{e}|')
                     break
 
-                # 텍스트의 경우 파일 이름을 임의로 생성하여
+                # 텍스트의 경우 파일 이름을 임의로 생성
                 elif t == 'text':
                     try:
                         f_name = f'{get_dst_path()}/{s_key}_{tm()}_{str(uuid4())[:8]}.txt'
                         with open(f_name, 'wt') as f:
                             json.dump(s, f, indent=4, ensure_ascii=False)
                             logging.info(f'텍스트 파일 생성=|{f_name}|')
+                            count += 1
                             continue
                     except IOError as e:
                         logging.error(f'파일 입출력 오류 발생=|{e}|')
@@ -144,23 +148,22 @@ async def run_converter(send_q, recv_q, jq):
                     break
 
                 # 바코드
-                elif t == 'barcode':
+                elif t in ('ean', 'upc', 'qr', 'dmx'):
                     try:
-                        pass
+                        if not os.path.exists(s.get('name')):
+                            # 바코드 이미지가 존재하지 않는다면 생성 지시
+                            f_name = f'{get_dst_path()}/{s_key}_{tm()}_{str(uuid4())[:8]}.{t}'
+                            logging.info(f'바코드가 존재하지 않음, 새로 생성=|{f_name}|')
+                            with open(f_name, 'wt') as f:
+                                json.dump(s, f, indent=4, ensure_ascii=False)
+                                logging.info(f'바코드 정보=|{s}|')
+                                count += 1
+                                continue
+                    except IOError as e:
+                        logging.error(f'파일 입출력 오류 발생=|{e}|')
                     except Exception as e:
-                        logging.error(f'바코드 파일 생성 실패=|{e}|')
-
-                elif t == 'qrcode':
-                    try:
-                        pass
-                    except Exception as e:
-                        logging.error(f'QR코드 파일 생성 실패=|{e}|')
-
-                elif t == 'dmx':
-                    try:
-                        pass
-                    except Exception as e:
-                        logging.error(f'DMX 파일 생성 실패=|{e}|')
+                        logging.error(f'바코드 정보 파일 생성 실패=|{e}|')
+                    break
 
                 else:
                     logging.error(f'지원하지 않는 종류의 데이터=|{t}|')
@@ -168,8 +171,8 @@ async def run_converter(send_q, recv_q, jq):
                     break
 
             # 웹라벨 구성 요소를 pdf로 변환 실패
-            if fail_flag or s_count:
-                logging.error(f'웹라벨 생성 실패')
+            if fail_flag or s_count != count:
+                logging.error(f'웹라벨 생성 실패, 실패_플래그=|{fail_flag}| 구성요소=|{count}/{s_count}|')
                 try:
                     jq.put_nowait(s_key)
                 except Exception as e:
