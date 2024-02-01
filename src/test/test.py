@@ -104,7 +104,8 @@ def test_2():
 
 
 def test_3():
-    print(f'{conf.root_path}/{conf.done_path}')
+    a = os.path.join('/abc', 'eee', '123', '444')
+    print(str(a))
 
 
 if __name__ == '__main__':

@@ -11,9 +11,10 @@ from src.comm.comm import ready_cont, get_loop, cache_func
 from src.comm.db import get_connect, query_all, query_one, update
 from src.comm.help import get_zip_path, get_pdf_path, make_zip_files
 from src.comm.log import console_log
-from src.starter.query import get_sql_lpas_group, get_sql_server_info, get_upd_lpas_group, get_sql_lpas_headers, \
+from src.comm.query import get_sql_lpas_group, get_sql_server_info, get_upd_lpas_group, get_sql_lpas_headers, \
     get_sql_lpas_items, get_upd_lpas_group_ret, get_upd_run_lpas_group, get_state_group_run, get_state_group_yes, \
-    get_state_group_err, get_upd_err_lpas_group, get_col_lpas_items
+    get_upd_err_lpas_group, get_col_lpas_items, get_state_header_yes, get_state_item_yes, \
+    get_state_header_init, get_state_group_err
 
 
 def get_my_info(hostname):
@@ -66,20 +67,27 @@ async def get_lpas_group():
     get_info = server_status()[1]
     ok = ready_cont()[2]
     while ok():
+        # 서버의 상태가 active 가 될 때까지 1초 간격으로 폴링하여 확인
+        # 실시간으로 서버의 상태를 감지하여 적용
         if not (info := get_info()):
             await aio.sleep(1)
             continue
-        task = info['task']
         name = info['name']
+        task = info['task']
 
+        # g 테이블로부터 작업 시작
+        # g 테이블에 해당 서버에게 맡겨진 작업이 있는지 확인
         sql, cols = get_sql_lpas_group(name)
         if g := query_one(sql):
+            # 해당 작업을 진행하겠다고 표시
             update(get_upd_run_lpas_group(g[cols.mandt], g[cols.ebeln], g[cols.vbeln]))
             logging.debug(f'G 읽음=|{g}|')
             return g, cols
 
+        # g 테이블에 해당 서버에게 맡길 작업이 없다면..
+        # 주인 없는 작업을 찾아서 해당 서버에게 할당
         update(get_upd_lpas_group(name, task))
-        await aio.sleep(1.0)
+        await aio.sleep(1)
 
 
 def get_lpas_headers(mandt, ebeln, vbeln):
@@ -102,7 +110,10 @@ async def next_job():
     ok = ready_cont()[2]
     while ok():
         try:
+            ###################################
             # LPAS_ORDER_G 로부터 작업 조회
+            # 작업을 조회할 때까지 대기
+            ###################################
             ret = await get_lpas_group()
             if not ok():
                 break
@@ -112,31 +123,51 @@ async def next_job():
             vbeln = g[g_cols.vbeln]
             lbpodat = g[g_cols.lbpodat]
 
+            ###################################
             # LPAS_ORDER_H 로부터 작업 조회
+            ###################################
             h_list, h_cols = get_lpas_headers(mandt, ebeln, vbeln)
+            ret = True
             for h in h_list:
                 zimgc = h[h_cols.zimgc]
                 if zimgc and zimgc.upper() == 'Y':
                     continue
-
-                # LPAS_ORDER_I 로부터 작업 조회
                 posnr = h[h_cols.posnr]
                 matnr = h[h_cols.matnr]
                 l_size = h[h_cols.l_size].split('*')
                 i_cnt = h[h_cols.i_cnt]
+
+                ###################################
+                # LPAS_ORDER_I 로부터 작업 조회
+                ###################################
                 i_list, i_cols = get_lpas_items(mandt, ebeln, vbeln, posnr, matnr)
                 if i_cnt != len(i_list):
+                    logging.error(f'H 정보와 I 개수가 불일치 |{i_cnt}| != |{len(i_list)}|')
+                    ret = False
                     break
-                for i in i_list:
-                    zimgc = i[i_cols.zimgc]
-                    if not zimgc or zimgc.strip().upper() != get_state_group_yes():
-                        break
+
+                state = get_state_item_yes()
+                if any([not i[i_cols.zimgc] or i[i_cols.zimgc].strip().upper() != state for i in i_list]):
+                    logging.error(f'I 요소 불완전 |{zimgc.strip().upper()}|')
+                    ret = False
+                    break
 
                 o_dict = {
+                    'mandt': mandt,
+                    'ebeln': ebeln,
+                    'vbeln': vbeln,
+                    'posnr': posnr,
+                    'matnr': matnr,
                     'name': f'{get_pdf_path(lbpodat)}/{mandt}_{ebeln}_{vbeln}_{posnr}_{matnr}.pdf',
                     'size': (int(l_size[0]), int(l_size[1])),
                 }
                 yield i_list, o_dict
+
+            if not ret:
+                # 웹에서 관리자가 직접 다시 초기화를 해줘야..
+                # 다시 웹라벨 생성 및 압축 파일을 만들 수 있음
+                update(get_upd_run_lpas_group(mandt, ebeln, vbeln))
+                logging.error(f'G 실패 기록 mandt=|{mandt}| ebeln=|{ebeln}| vbeln=|{vbeln}|')
 
         except Exception as e:
             logging.error(f'에러 발생=|{e}|')
@@ -164,7 +195,7 @@ def make_zip(mandt, ebeln, lbpodat):
     make_zip_files(zip_file, pdf_path, f'{mandt}_{ebeln}', 'pdf')
 
 
-async def update_result(period=0.1):
+async def update_result(period=1):
     logging.info(f'작업 결과 갱신 시작')
     get_info = server_status()[1]
     ok = ready_cont()[2]
@@ -175,7 +206,9 @@ async def update_result(period=0.1):
         if info['status'] != _.active:
             continue
 
+        ###################################
         # LPAS_ORDER_G 로부터 작업 조회
+        ###################################
         name = info['name']
         sql, g_cols = get_sql_lpas_group(name, None, get_state_group_run())
         if not (g := query_one(sql)):
@@ -185,27 +218,34 @@ async def update_result(period=0.1):
         vbeln = g[g_cols.vbeln]
         lbpodat = g[g_cols.lbpodat]
 
+        ###################################
         # LPAS_ORDER_H 로부터 작업 조회
+        ###################################
         h_list, h_cols = get_lpas_headers(mandt, ebeln, vbeln)
         if not len(h_list):
             update(get_upd_err_lpas_group(mandt, ebeln, vbeln))
             continue
 
-        yes_cnt = 0
+        count = 0
         ret = ''
         for h in h_list:
-            if zimgc := h[h_cols.zimgc]:
-                if zimgc.strip().upper() == get_state_group_yes():
-                    yes_cnt += 1
-                elif zimgc.strip() != '':
+            if zimgc := h.get(h_cols.zimgc, ''):
+                # 웹라벨 생성 성공
+                if (t := zimgc.strip().upper()) == get_state_header_yes():
+                    count += 1
+                # 웹라벨 생성 진행 중
+                elif t in ('', get_state_header_init()):
+                    pass
+                # 웹라벨 생성 실패
+                else:
                     ret = get_state_group_err()
                     break
 
-        if yes_cnt == len(h_list):
+        if count == len(h_list):
             make_zip(mandt, ebeln, lbpodat)
             ret = get_state_group_yes()
 
-        if ret:
+        if ret in (get_state_group_err(), get_state_group_yes()):
             update(get_upd_lpas_group_ret(mandt, ebeln, vbeln, ret))
             logging.info(f'G 갱신, mandt=|{mandt}| ebeln=|{ebeln}| vbeln=|{vbeln}| zimgc=|{ret}|')
 
@@ -234,10 +274,10 @@ async def get_job(job_q):
 
 async def proc_job(cq, jq):
     def _f(d):
-        return float(d) if d else None
+        return float(d) if d is not None else None
 
     def _i(d):
-        return int(d) if d else None
+        return int(d) if d is not None else None
 
     logging.info(f'작업 진행 시작')
     g_cols = get_col_lpas_items(True)
@@ -250,9 +290,11 @@ async def proc_job(cq, jq):
                 src.append({
                     'type_': job[g_cols.l_type],
                     'name': job[g_cols.i_filename],
-                    'coordi': (_f(job[g_cols.l_coordi_x]), _f(job[g_cols.l_coordi_x])),
+                    'coordi': (_f(job[g_cols.l_coordi_x]), _f(job[g_cols.l_coordi_y])),
                     'size': (_f(job[g_cols.b_width]), _f(job[g_cols.b_height])),
+                    'position': job[g_cols.i_position],
                     'rotate': _i(job[g_cols.l_rotate]),
+                    'rate': _i(job[g_cols.i_rate]),
                     'priotiry': _i(job[g_cols.l_pri]),
                     'font': job[g_cols.t_font],
                     'font_size': _f(job[g_cols.t_fontsize]),
@@ -261,6 +303,7 @@ async def proc_job(cq, jq):
                     'align': job[g_cols.t_align].lower() if job[g_cols.t_align] else None,
                     'valign': job[g_cols.t_valign].lower() if job[g_cols.t_valign] else None,
                 })
+
             while ok():
                 try:
                     key = str(uuid.uuid4())[:4]
@@ -302,9 +345,9 @@ async def starter_proc(cq):
     while ok():
         try:
             # 서버의 상태를 읽고 갱신
-            t1 = loop.create_task(update_status(1))
+            t1 = loop.create_task(update_status())
             # 작업의 결과를 갱신
-            t2 = loop.create_task(update_result(1))
+            t2 = loop.create_task(update_result())
             # 데이터베이스 연결 및 job 을 읽어서 jq에 송신
             t3 = loop.create_task(get_job(jq))
             # jq에서 job을 수신하여 다른 프로세스에게 전달 및 제어

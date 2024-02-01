@@ -27,6 +27,14 @@ def get_state_header_init():
     return ''
 
 
+def get_state_header_yes():
+    return 'Y'
+
+
+def get_state_header_err():
+    return 'E'
+
+
 def get_state_item_yes():
     return 'Y'
 
@@ -78,7 +86,7 @@ def get_upd_err_lpas_group(mandt, ebeln, vbeln):
     return get_upd_lpas_group_ret(mandt, ebeln, vbeln, get_state_group_err())
 
 
-def get_upd_lpas_headers_ret(mandt, ebeln, vbeln, posnr, matnr, ret):
+def get_upd_lpas_header_ret(mandt, ebeln, vbeln, posnr, matnr, ret):
     sql = \
         f" UPDATE LPAS_ORDER_H " \
         f" SET ZIMGC = '{ret}' " \
@@ -91,6 +99,14 @@ def get_upd_lpas_headers_ret(mandt, ebeln, vbeln, posnr, matnr, ret):
         f" AND MATNR = '{matnr}' "
     logging.debug(f'{sql}')
     return sql
+
+
+def get_upd_yes_lpas_header(mandt, ebeln, vbeln, posnr, matnr):
+    return get_upd_lpas_header_ret(mandt, ebeln, vbeln, posnr, matnr, get_state_header_yes())
+
+
+def get_upd_err_lpas_header(mandt, ebeln, vbeln, posnr, matnr):
+    return get_upd_lpas_header_ret(mandt, ebeln, vbeln, posnr, matnr, get_state_header_err())
 
 
 ############################
@@ -207,6 +223,8 @@ def get_col_lpas_items(nt=False):
         'b_height',
         'i_filename',
         'i_position',
+        # (r)ight, (c)enter, (l)eft 와 (t)op, (m)iddle, (b)ottom 의 조합
+        # rt, rm, rb, ct, cm, cb, lt, lm, lb
         'i_rate',
         't_font',
         't_fontsize',
