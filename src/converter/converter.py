@@ -121,7 +121,7 @@ async def run_converter(send_q, recv_q, jq):
                         i_name = f'{s_key}_{tm()}_{os.path.basename(src)}'
                         f_name = f'{get_dst_path()}/{i_name}'
                         s['target'] = change_ext(f'{o_path}/{i_name}', pdf)
-                        logging.debug(f'이미지 파일 복사, |{src}| => |{f_name}|')
+                        logging.info(f'이미지 파일 복사, |{src}| => |{f_name}|')
                         copy(src, f_name)
                         count += 1
                         continue

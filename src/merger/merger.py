@@ -142,7 +142,7 @@ async def resize_data(src_list, size):
                 exec_command(command)
 
 
-async def check_src_list(src_list, lmt_sec):
+async def check_src_list(src_list, lmt_sec=10):
     wait_sec = 0
     for src in src_list:
         if not os.path.exists(src['target']):
@@ -150,7 +150,7 @@ async def check_src_list(src_list, lmt_sec):
             if wait_sec > lmt_sec:
                 logging.error(f'필요한 구성 파일이 존재하지 않음=|{src["target"]}|')
                 return False
-            await aio.sleep(0.1)
+            await aio.sleep(1)
 
     logging.info(f'모든 구성요소 파일이 준비되었음')
     return True
@@ -180,7 +180,7 @@ async def task_proc(task):
     while ok():
         try:
             # 구성요소 이미지 파일들이 모두 존재하는지 확인
-            if not await check_src_list(src_list, 3):
+            if not await check_src_list(src_list):
                 logging.error(f'결과물 생성 실패')
                 break
 

@@ -229,7 +229,7 @@ async def update_result(period=1):
         count = 0
         ret = ''
         for h in h_list:
-            if zimgc := h.get(h_cols.zimgc, ''):
+            if zimgc := h[h_cols.zimgc]:
                 # 웹라벨 생성 성공
                 if (t := zimgc.strip().upper()) == get_state_header_yes():
                     count += 1
