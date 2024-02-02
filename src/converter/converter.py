@@ -110,9 +110,9 @@ async def run_converter(send_q, recv_q, jq):
             s_count = i_dict.get('count')
             s_key = i_dict.get('key')
             s_list = i_dict.get('src')
-            fail_flag = False
 
             count = 0
+            fail_flag = False
             for s in s_list:
                 # 이미지의 경우 원본 이미지를 목적 디렉토리로 복사
                 if (t := s.get('type_', '').lower()) == 'image':
@@ -126,13 +126,14 @@ async def run_converter(send_q, recv_q, jq):
                         count += 1
                         continue
                     except FileNotFoundError as e:
-                        logging.error(f'원본 파일 없음=|{e}|')
+                        logging.error(f'원본 파일 없음(i)=|{e}|')
                     except PermissionError as e:
-                        logging.error(f'파일 접근 권한 부족=|{e}|')
+                        logging.error(f'파일 접근 권한 부족(i)=|{e}|')
                     except IOError as e:
-                        logging.error(f'입출력 오류 발생=|{e}|')
+                        logging.error(f'입출력 오류 발생(i)=|{e}|')
                     except Exception as e:
-                        logging.error(f'복사 실패=|{e}|')
+                        logging.error(f'복사 실패(i)=|{e}|')
+                    fail_flag = True
                     break
 
                 # 텍스트의 경우 파일 이름을 임의로 생성
@@ -143,15 +144,18 @@ async def run_converter(send_q, recv_q, jq):
                         s['target'] = change_ext(f'{o_path}/{i_name}', pdf)
                         with open(f_name, 'wt') as f:
                             json.dump(s, f, indent=4, ensure_ascii=False)
-                            logging.debug(f'텍스트 파일 생성=|{f_name}|')
+                            logging.info(f'텍스트 파일 생성=|{f_name}|')
                             count += 1
                             continue
+                    except FileNotFoundError as e:
+                        logging.error(f'원본 파일 없음(t)=|{e}|')
                     except IOError as e:
-                        logging.error(f'파일 입출력 오류 발생=|{e}|')
+                        logging.error(f'파일 입출력 오류 발생(t)=|{e}|')
                     except ValueError as e:
-                        logging.error(f'데이터 인코딩 오류 발생=|{e}|')
+                        logging.error(f'데이터 인코딩 오류 발생(t)=|{e}|')
                     except Exception as e:
-                        logging.error(f'텍스트 파일 생성 실패=|{e}|')
+                        logging.error(f'텍스트 파일 생성 실패(t)=|{e}|')
+                    fail_flag = True
                     break
 
                 # 바코드
@@ -171,12 +175,13 @@ async def run_converter(send_q, recv_q, jq):
                             logging.info(f'이미 바코드 이미지 존재=|{s.get("name")}|')
                             count += 1
                             continue
+
                     except IOError as e:
                         logging.error(f'파일 입출력 오류 발생=|{e}|')
-                        break
                     except Exception as e:
                         logging.error(f'바코드 정보 파일 생성 실패=|{e}|')
-                        break
+                    fail_flag = True
+                    break
 
                 else:
                     logging.error(f'지원하지 않는 종류의 데이터=|{t}|')
@@ -266,143 +271,7 @@ async def converter_proc(rq, wq):
 async def test_sub1(q):
     def get_data():
         data = {
-            'input': {
-                'count': 9,
-                'key': '4410',
-                'src': [
-                    {
-                        'align': 'center',
-                        'coordi': (37.0, 37.0),
-                        'font': 'Helvetica-Bold',
-                        'font_color': (None, None, None),
-                        'font_size': 39.0,
-                        'name': None,
-                        'priotiry': 99,
-                        'rotate': None,
-                        'size': (140.0, 14.0),
-                        'text': '235/65R18 91Y XL',
-                        'type_': 'TEXT',
-                        'valign': 'top'
-                    },
-                    {
-                        'align': None,
-                        'coordi': (178.8, 178.8),
-                        'font': None,
-                        'font_color': (None, None, None),
-                        'font_size': None,
-                        'name': '/lpas/Engine/data/src_files/images/HK/barcode/8808563461533.png',
-                        'priotiry': 12,
-                        'rotate': None,
-                        'size': (40.0, 15.5),
-                        'text': '8808563461533',
-                        'type_': 'BARCODE',
-                        'valign': None
-                    },
-                    {
-                        'align': 'right',
-                        'coordi': (29.5, 29.5),
-                        'font': 'Helvetica',
-                        'font_color': (None, None, None),
-                        'font_size': 16.0,
-                        'name': None,
-                        'priotiry': 99,
-                        'rotate': 90,
-                        'size': (44.6, 5.85),
-                        'text': '235/65R18 91Y XL',
-                        'type_': 'TEXT',
-                        'valign': 'top'
-                    },
-                    {
-                        'align': 'center',
-                        'coordi': (39.0, 39.0),
-                        'font': 'Helvetica',
-                        'font_color': (None, None, None),
-                        'font_size': 9.0,
-                        'name': None,
-                        'priotiry': 99,
-                        'rotate': None,
-                        'size': (140.0, 8.5),
-                        'text': 'Pleasure cross point between performance and '
-                                'emotion',
-                        'type_': 'TEXT',
-                        'valign': 'top'
-                    },
-                    {
-                        'align': 'left',
-                        'coordi': (29.3, 29.3),
-                        'font': 'Helvetica-Bold',
-                        'font_color': (None, None, None),
-                        'font_size': 16.0,
-                        'name': None,
-                        'priotiry': 99,
-                        'rotate': 90,
-                        'size': (21.0, 6.2),
-                        'text': 'K127B',
-                        'type_': 'TEXT',
-                        'valign': 'top'
-                    },
-                    {
-                        'align': 'center',
-                        'coordi': (182.0, 182.0),
-                        'font': 'Helvetica-heavy',
-                        'font_color': (None, None, None),
-                        'font_size': 20.0,
-                        'name': None,
-                        'priotiry': 99,
-                        'rotate': None,
-                        'size': (34.6, 8.3),
-                        'text': '1234567',
-                        'type_': 'TEXT',
-                        'valign': 'top'
-                    },
-                    {
-                        'align': 'right',
-                        'coordi': (3.6, 3.6),
-                        'font': 'Helvetica-heavy',
-                        'font_color': (None, None, None),
-                        'font_size': 24.0,
-                        'name': None,
-                        'priotiry': 99,
-                        'rotate': 90,
-                        'size': (44.0, 9.5),
-                        'text': '1234567',
-                        'type_': 'TEXT',
-                        'valign': 'top'
-                    },
-                    {
-                        'align': 'center',
-                        'coordi': (185.3, 185.3),
-                        'font': 'Helvetica',
-                        'font_color': (None, None, None),
-                        'font_size': 7.0,
-                        'name': None,
-                        'priotiry': 99,
-                        'rotate': None,
-                        'size': (27.7, 2.8),
-                        'text': 'NOT FOR SALE IN JAPAN',
-                        'type_': 'TEXT',
-                        'valign': 'top'
-                    },
-                    {
-                        'align': 'left',
-                        'coordi': (3.5, 3.5),
-                        'font': 'Helvetica',
-                        'font_color': (None, None, None),
-                        'font_size': 5.0,
-                        'name': None,
-                        'priotiry': 99,
-                        'rotate': 90,
-                        'size': (20.3, 1.85),
-                        'text': 'J-0001044483-230915',
-                        'type_': 'TEXT',
-                        'valign': 'top'
-                    }
-                ]
-            },
-            'output': {
-                'name': '/LPAS/lpas/data/done_files/PDF/20230901/110_9999036431_9999036431_000010_1024881.pdf',
-                'size': (80, 240)
-            }
+
         }
         return data
 

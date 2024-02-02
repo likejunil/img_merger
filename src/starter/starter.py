@@ -159,7 +159,7 @@ async def next_job():
                     'posnr': posnr,
                     'matnr': matnr,
                     'name': f'{get_pdf_path(lbpodat)}/{mandt}_{ebeln}_{vbeln}_{posnr}_{matnr}.pdf',
-                    'size': (int(l_size[0]), int(l_size[1])),
+                    'size': (int(l_size[1]), int(l_size[0])),
                 }
                 yield i_list, o_dict
 
@@ -295,7 +295,7 @@ async def proc_job(cq, jq):
                     'position': job[g_cols.i_position],
                     'rotate': _i(job[g_cols.l_rotate]),
                     'rate': _i(job[g_cols.i_rate]),
-                    'priotiry': _i(job[g_cols.l_pri]),
+                    'priority': _i(job[g_cols.l_pri]),
                     'font': job[g_cols.t_font],
                     'font_size': _f(job[g_cols.t_fontsize]),
                     'font_color': (_i(job[g_cols.t_font_r]), _i(job[g_cols.t_font_g]), _i(job[g_cols.t_font_b])),

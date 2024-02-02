@@ -42,7 +42,8 @@ def make_zip_files(o_file, src_dir, s_pattern, e_pattern):
                     count += 1
                     logging.info(f'압축 파일 추가({count})=|{file}|')
 
-    logging.info(f'압축 파일 생성 완료(총 {count}개)=|{o_file}|')
+    if count:
+        logging.info(f'압축 파일 생성 완료(총 {count}개)=|{o_file}|')
 
 
 def test():

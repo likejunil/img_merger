@@ -25,7 +25,7 @@ path:
   #
   in_data:
     path: "data/in_files"
-    ext: [ "jpg", "jpeg", "png", "eps", "pdf", "bar", "qr", "dmx", "txt" ]
+    ext: [ "jpg", "jpeg", "png", "eps", "pdf", "ean", "upc", "qr", "dmx", "txt" ]
     path_count: 9
 
   # converter 에 의해서 in_data -> out_data
