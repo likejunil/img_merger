@@ -91,14 +91,18 @@ async def resize_data(src_list, size):
                 is_width = float(is_width) / mm
                 is_height = float(is_height) / mm
                 # 스케일 적용
-                rate = src.get('rate') if src.get('rate') else 100.0
+                rate = src['rate'] if src['rate'] else 100.0
                 scale = round(rate / 100.0, 2)
                 img_width = round(is_width * scale, 2)
                 img_height = round(is_height * scale, 2)
 
-                # 영역에서 이미지의 정렬
+                # 텍스트의 반시계방향 90 회전 경우
+                if (src['rotate'] if src['rotate'] else 0) == 90:
+                    box_y += (box_width - box_height)
+                    src['position'] = 'lt'
+
                 # 이미지가 위치할 좌표
-                align = src.get('position').lower() if src.get('position') else 'cm'
+                align = src['position'].lower() if src['position'] else 'cm'
                 if align == 'lt':
                     img_x = box_x
                     img_y = box_y

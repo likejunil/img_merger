@@ -26,8 +26,10 @@ def generate_ean(content, o_file):
     barcode = eanbc.Ean13BarcodeWidget(content)
 
     # 바코드 속성 설정
-    barcode.barHeight = 20 * mm
-    barcode.fontSize = 11
+    # barcode.barHeight = 20 * mm
+    # barcode.fontSize = 11
+    barcode.barHeight = 16 * mm
+    barcode.fontSize = 8
 
     # 바코드 바운딩 박스의 크기를 얻어 Drawing 객체 크기 설정
     # 캔버스 생성

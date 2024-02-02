@@ -104,8 +104,7 @@ def test_2():
 
 
 def test_3():
-    a = os.path.join('/abc', 'eee', '123', '444')
-    print(str(a))
+    pass
 
 
 if __name__ == '__main__':

@@ -1,3 +1,4 @@
+import logging
 import os
 
 from conf.conf import config as conf
@@ -8,6 +9,7 @@ def _register_fonts():
     from reportlab.pdfbase.ttfonts import TTFont
 
     def get_path(ttf):
+        logging.info(f'폰트 등록=|{ttf}|')
         return os.path.join(conf.font_path, ttf)
 
     pdfmetrics.registerFont(TTFont('Helvetica-Light', get_path('Helvetica-Light.ttf')))

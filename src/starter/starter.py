@@ -241,6 +241,9 @@ async def update_result(period=1):
                     ret = get_state_group_err()
                     break
 
+        ###################################
+        # zip 파일 생성
+        ###################################
         if count == len(h_list):
             make_zip(mandt, ebeln, lbpodat)
             ret = get_state_group_yes()

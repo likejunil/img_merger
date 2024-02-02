@@ -50,8 +50,8 @@ def text2pdf(data, o_name):
         c.setPageSize((width * mm, height * mm))
 
     # 텍스트 정렬
-    align = data.get('align')
-    valign = data.get('valign')
+    align = data.get('align').lower() if data.get('align') else 'center'
+    valign = data.get('valign').lower() if data.get('valign') else 'top'
     logging.info(f'텍스트 정렬, 상하=|{valign}| 좌우=|{align}|')
 
     # 데카르트 좌표(좌하단, 즉 원점으로부터)
