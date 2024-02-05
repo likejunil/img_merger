@@ -4,13 +4,14 @@ import pprint
 import socket
 import uuid
 from multiprocessing import Queue
+from queue import Empty
 from queue import Full
 
 import conf.constant as _
 from src.comm.comm import ready_cont, get_loop, cache_func
 from src.comm.db import get_connect, query_all, query_one, update
 from src.comm.help import get_zip_path, get_pdf_path, make_zip_files
-from src.comm.log import console_log
+from src.comm.log import console_log, initialize_log
 from src.comm.query import get_sql_lpas_group, get_sql_server_info, get_upd_lpas_group, get_sql_lpas_headers, \
     get_sql_lpas_items, get_upd_lpas_group_ret, get_upd_run_lpas_group, get_state_group_run, get_state_group_yes, \
     get_upd_err_lpas_group, get_col_lpas_items, get_state_header_yes, get_state_item_yes, \
@@ -355,8 +356,10 @@ async def starter_proc(cq):
             t3 = loop.create_task(get_job(jq))
             # jq에서 job을 수신하여 다른 프로세스에게 전달 및 제어
             t4 = loop.create_task(proc_job(cq, jq))
+            # 자정 이후 로그 초기화
+            t5 = loop.create_task(initialize_log())
 
-            ret = await aio.gather(t1, t2, t3, t4)
+            ret = await aio.gather(t1, t2, t3, t4, t5)
             logging.info(f'스타터 모듈 종료, 재시작=|{ret}|')
             get_connect()[1]()
             await aio.sleep(1)
@@ -371,14 +374,13 @@ async def starter_proc(cq):
 
 
 async def test_sub(q):
-    from queue import Empty
     ok = ready_cont()[2]
     while ok():
         try:
             d = q.get_nowait()
             logging.info(f'데이터 수신=|{d}|')
         except Empty:
-            logging.debug(f'Queue 가 비었음')
+            logging.debug(f'큐가 비었음')
             await aio.sleep(1)
         except Exception as e:
             logging.error(e)

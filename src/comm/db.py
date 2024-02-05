@@ -5,11 +5,9 @@ import cx_Oracle
 
 from conf.conf import config as conf
 from src.comm.comm import cache_func
-from src.comm.log import console_log
 
 
 def get_auth_info():
-    console_log()
     logging.info(f'오라클 접속 정보_계정:주소:포트:서비스=|{conf.user}:{conf.addr}:{conf.port}:{conf.db}:{conf.passwd}|')
     return conf.user, conf.passwd, conf.addr, conf.port, conf.db
 

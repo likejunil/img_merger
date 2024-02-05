@@ -5,7 +5,9 @@ from time import sleep
 
 from conf.conf import config as conf
 from src.comm.comm import ready_cont
-from src.starter.starter import server_status
+
+
+# from src.starter.starter import server_status
 
 
 def main():
@@ -92,15 +94,6 @@ def loop_test(sq, rq):
         logging.info(f'수신=|{msg}|')
         count += 1
         sleep(1)
-
-
-def test_2():
-    update, get_info = server_status()
-    info = get_info()
-    print(info)
-    update()
-    info = get_info()
-    print(info)
 
 
 def test_3():

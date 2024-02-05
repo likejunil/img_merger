@@ -82,8 +82,8 @@ def get_upd_yes_lpas_group(mandt, ebeln, vbeln):
     return get_upd_lpas_group_ret(mandt, ebeln, vbeln, get_state_group_yes())
 
 
-def get_upd_err_lpas_group(mandt, ebeln, vbeln):
-    return get_upd_lpas_group_ret(mandt, ebeln, vbeln, get_state_group_err())
+def get_upd_err_lpas_group(mandt, ebeln, vbeln, err=None):
+    return get_upd_lpas_group_ret(mandt, ebeln, vbeln, err if err else get_state_group_err())
 
 
 def get_upd_lpas_header_ret(mandt, ebeln, vbeln, posnr, matnr, ret):
@@ -105,8 +105,8 @@ def get_upd_yes_lpas_header(mandt, ebeln, vbeln, posnr, matnr):
     return get_upd_lpas_header_ret(mandt, ebeln, vbeln, posnr, matnr, get_state_header_yes())
 
 
-def get_upd_err_lpas_header(mandt, ebeln, vbeln, posnr, matnr):
-    return get_upd_lpas_header_ret(mandt, ebeln, vbeln, posnr, matnr, get_state_header_err())
+def get_upd_err_lpas_header(mandt, ebeln, vbeln, posnr, matnr, err=None):
+    return get_upd_lpas_header_ret(mandt, ebeln, vbeln, posnr, matnr, err if err else get_state_header_err())
 
 
 ############################

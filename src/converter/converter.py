@@ -14,7 +14,7 @@ from uuid import uuid4
 from conf.conf import config as conf
 from conf.constant import pdf
 from src.comm.comm import ready_cont, get_loop, ready_queue, tm
-from src.comm.log import console_log
+from src.comm.log import console_log, initialize_log
 from src.converter.core import change_ext
 from src.converter.fonts import register_fonts
 from src.converter.image import conv_jpg, conv_png, conv_eps, conv_pdf
@@ -211,7 +211,7 @@ async def run_converter(send_q, recv_q, jq):
                 await aio.sleep(1)
             continue
 
-        await aio.sleep(1)
+        await aio.sleep(0.1)
 
     for t in t_list:
         t.terminate()
@@ -255,7 +255,8 @@ async def converter_proc(rq, wq):
         try:
             t1 = loop.create_task(run_converter(send_q, recv_q, jq))
             t2 = loop.create_task(delete_files(jq))
-            ret = await aio.gather(t1, t2)
+            t3 = loop.create_task(initialize_log())
+            ret = await aio.gather(t1, t2, t3)
             logging.info(f'컨버터 모듈 종료, 재시작=|{ret}|')
             await aio.sleep(1)
 

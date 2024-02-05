@@ -1,3 +1,4 @@
+import asyncio as aio
 import filecmp
 import logging
 import os
@@ -7,6 +8,7 @@ from logging.handlers import TimedRotatingFileHandler
 from multiprocessing import current_process
 
 from conf.conf import config as conf
+from src.comm.comm import ready_cont
 
 log_level = logging.DEBUG if conf.debug else logging.INFO
 
@@ -163,6 +165,26 @@ def manage_logfile():
         move_and_merge(abs_file, dst_dir)
 
     init_log(get_log_level(), 'root', change=True)
+
+
+async def initialize_log():
+    changed_flag = False
+    t1 = datetime.strptime("0000", "%M%S").time()
+    t2 = datetime.strptime("1000", "%M%S").time()
+    t3 = datetime.strptime("2000", "%M%S").time()
+
+    ok = ready_cont()[2]
+    while ok():
+        await aio.sleep(10)
+        if not changed_flag:
+            if t1 <= datetime.now().time() < t2:
+                init_log(get_log_level(), None, change=True)
+                changed_flag = True
+        else:
+            if t2 <= datetime.now().time() < t3:
+                changed_flag = False
+
+    return 'ok'
 
 
 def get_log_level():
