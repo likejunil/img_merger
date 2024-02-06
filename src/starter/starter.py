@@ -136,6 +136,7 @@ async def next_job():
                 posnr = h[h_cols.posnr]
                 matnr = h[h_cols.matnr]
                 l_size = h[h_cols.l_size].split('*')
+                l_rotate = h[h_cols.l_rotate]
                 i_cnt = h[h_cols.i_cnt]
 
                 ###################################
@@ -161,6 +162,7 @@ async def next_job():
                     'matnr': matnr,
                     'name': f'{get_pdf_path(lbpodat)}/{mandt}_{ebeln}_{vbeln}_{posnr}_{matnr}.pdf',
                     'size': (int(l_size[0]), int(l_size[1])),
+                    'rotate': l_rotate,
                 }
                 yield i_list, o_dict
 

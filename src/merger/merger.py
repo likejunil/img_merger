@@ -120,7 +120,7 @@ async def sub_merge_1(src_list, o_file, size):
     return True
 
 
-async def merge_data(src_list, o_file, size):
+async def merge_data(src_list, o_file, size, rotate):
     f_list = [
         sub_merge_0,
         sub_merge_1,
@@ -132,7 +132,11 @@ async def merge_data(src_list, o_file, size):
     try:
         if not os.path.exists(dir_name := os.path.dirname(o_file)):
             os.makedirs(dir_name)
-        return await f_list[get_f_idx()](src_list, o_file, size)
+        if await f_list[get_f_idx()](src_list, o_file, size):
+            if rotate:
+                rotate_pdf(o_file, 90)
+                logging.info(f'최종 결과물 회전, 이름=|{o_file}|')
+            return True
     except FileNotFoundError as e:
         logging.error(f'원본 파일 없음=|{e}|')
     except PermissionError as e:
@@ -244,7 +248,6 @@ async def resize_data(src_list, size):
                             return False
 
                         if (src['rotate'] if src['rotate'] else 0) == 90:
-                            # rotate_pdf(o_file, -90)
                             rotate_pdf(o_file, 90)
 
                         return True
@@ -296,6 +299,7 @@ async def task_proc(task):
     # 출력 정보
     out_data = task.get('output')
     size = out_data['size']
+    rotate = out_data['rotate']
     name = out_data['name']
     mandt = out_data['mandt']
     ebeln = out_data['ebeln']
@@ -311,14 +315,14 @@ async def task_proc(task):
     try:
         if await check_src_list(src_list) and \
                 await resize_data(src_list, size) and \
-                await merge_data(src_list, name, size):
+                await merge_data(src_list, name, size, rotate):
             update(get_upd_yes_lpas_header(mandt, ebeln, vbeln, posnr, matnr))
-            # await delete_files(src_list, key)
+            await delete_files(src_list, key)
             return True
         else:
             _, get_error = ready_error()
             update(get_upd_err_lpas_header(mandt, ebeln, vbeln, posnr, matnr, get_error()))
-            # await delete_files(src_list, key)
+            await delete_files(src_list, key)
             return False
 
     except Exception as e:
