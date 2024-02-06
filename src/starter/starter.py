@@ -6,6 +6,7 @@ import uuid
 from multiprocessing import Queue
 from queue import Empty
 from queue import Full
+from time import time
 
 import conf.constant as _
 from src.comm.comm import ready_cont, get_loop, cache_func
@@ -164,6 +165,7 @@ async def next_job():
                     'size': (int(l_size[0]), int(l_size[1])),
                     'rotate': l_rotate,
                 }
+
                 yield i_list, o_dict
 
             if not ret:
@@ -312,10 +314,10 @@ async def proc_job(cq, jq):
 
             while ok():
                 try:
-                    key = str(uuid.uuid4())[:4]
                     jobs_dict = {
                         'input': {
-                            'key': key,
+                            'time': time(),
+                            'key': str(uuid.uuid4())[:4],
                             'count': len(src),
                             'src': src,
                         },

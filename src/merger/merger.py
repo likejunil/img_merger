@@ -8,6 +8,7 @@ from io import FileIO
 from multiprocessing import Queue
 from queue import Empty
 from time import sleep
+from time import time
 
 import fitz
 from PyPDF2 import PdfFileReader, PdfFileWriter
@@ -311,11 +312,13 @@ async def task_proc(task):
     in_data = task.get('input')
     src_list = in_data['src']
     key = in_data['key']
+    s_time = in_data['time']
 
     try:
         if await check_src_list(src_list) and \
                 await resize_data(src_list, size) and \
                 await merge_data(src_list, name, size, rotate):
+            logging.info(f'작업_소요시간, 파일=|{name}| 소요시간=|{time() - s_time}|')
             update(get_upd_yes_lpas_header(mandt, ebeln, vbeln, posnr, matnr))
             await delete_files(src_list, key)
             return True
