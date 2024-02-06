@@ -84,7 +84,7 @@ def to_pdf(src, dst):
         src,
         f'--export-filename={dst}',
     ]
-    exec_command(command)
+    return exec_command(command)
 
 
 def png2svg(src, dst):
@@ -94,7 +94,7 @@ def png2svg(src, dst):
         '--export-type=svg',
         f'--export-filename={dst}'
     ]
-    exec_command(command)
+    return exec_command(command)
 
 
 def fit_image_to_pdf(src, dst):
@@ -106,7 +106,7 @@ def fit_image_to_pdf(src, dst):
         '-o', dst,
         '-f', src
     ]
-    exec_command(command)
+    return exec_command(command)
 
 
 def fit_image_to_eps(src, dst):
@@ -122,7 +122,7 @@ def fit_image_to_eps(src, dst):
         '-o', dst,
         '-f', src
     ]
-    exec_command(command)
+    return exec_command(command)
 
 
 def test():

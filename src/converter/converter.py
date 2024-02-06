@@ -14,7 +14,9 @@ from uuid import uuid4
 from conf.conf import config as conf
 from conf.constant import pdf
 from src.comm.comm import ready_cont, get_loop, ready_queue, tm
+from src.comm.db import update
 from src.comm.log import console_log, initialize_log
+from src.comm.query import get_upd_err_lpas_header
 from src.converter.core import change_ext
 from src.converter.fonts import register_fonts
 from src.converter.image import conv_jpg, conv_png, conv_eps, conv_pdf
@@ -56,7 +58,7 @@ async def do_convert(watcher):
         if b:
             logging.info(f'id =|{threading.get_ident()}| ret =|{r}|')
             # 무엇이든.. 하고 싶은 작업을 여기서 해라..
-        await aio.sleep(0.5)
+        await aio.sleep(0.1)
     watcher.stop_proc()
 
 
@@ -111,6 +113,13 @@ async def run_converter(send_q, recv_q, jq):
             s_key = i_dict.get('key')
             s_list = i_dict.get('src')
 
+            o_dict = d.get('output', {})
+            mandt = o_dict.get('mandt')
+            ebeln = o_dict.get('ebeln')
+            vbeln = o_dict.get('vbeln')
+            posnr = o_dict.get('posnr')
+            matnr = o_dict.get('matnr')
+
             count = 0
             fail_flag = False
             for s in s_list:
@@ -123,16 +132,18 @@ async def run_converter(send_q, recv_q, jq):
                         s['target'] = change_ext(f'{o_path}/{i_name}', pdf)
                         logging.info(f'이미지 파일 복사, |{src}| => |{f_name}|')
                         copy(src, f_name)
+                        logging.info(f'파일 복사 완료, |{src}| => |{f_name}|')
                         count += 1
                         continue
+
                     except FileNotFoundError as e:
-                        logging.error(f'원본 파일 없음(i)=|{e}|')
+                        logging.error(f'원본 파일 없음(i)=|{e}| 파일=|{src}|')
                     except PermissionError as e:
-                        logging.error(f'파일 접근 권한 부족(i)=|{e}|')
+                        logging.error(f'파일 접근 권한 부족(i)=|{e}| 파일=|{src}| ')
                     except IOError as e:
-                        logging.error(f'입출력 오류 발생(i)=|{e}|')
+                        logging.error(f'입출력 오류 발생(i)=|{e}| 파일=|{src}|')
                     except Exception as e:
-                        logging.error(f'복사 실패(i)=|{e}|')
+                        logging.error(f'복사 실패(i)=|{e}| 파일=|{src}|')
                     fail_flag = True
                     break
 
@@ -147,6 +158,7 @@ async def run_converter(send_q, recv_q, jq):
                             logging.info(f'텍스트 파일 생성=|{f_name}|')
                             count += 1
                             continue
+
                     except FileNotFoundError as e:
                         logging.error(f'원본 파일 없음(t)=|{e}|')
                     except IOError as e:
@@ -191,6 +203,8 @@ async def run_converter(send_q, recv_q, jq):
             # 웹라벨 구성 요소를 pdf로 변환 실패
             if fail_flag or s_count != count:
                 logging.error(f'웹라벨 생성 실패, 실패_플래그=|{fail_flag}| 구성요소=|{count}/{s_count}|')
+                update(get_upd_err_lpas_header(mandt, ebeln, vbeln, posnr, matnr))
+
                 try:
                     jq.put_nowait(s_key)
                 except Exception as e:

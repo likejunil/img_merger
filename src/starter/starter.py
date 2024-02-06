@@ -160,7 +160,7 @@ async def next_job():
                     'posnr': posnr,
                     'matnr': matnr,
                     'name': f'{get_pdf_path(lbpodat)}/{mandt}_{ebeln}_{vbeln}_{posnr}_{matnr}.pdf',
-                    'size': (int(l_size[1]), int(l_size[0])),
+                    'size': (int(l_size[0]), int(l_size[1])),
                 }
                 yield i_list, o_dict
 

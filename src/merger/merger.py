@@ -7,7 +7,9 @@ from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_compl
 from io import FileIO
 from multiprocessing import Queue
 from queue import Empty
+from time import sleep
 
+import fitz
 from PyPDF2 import PdfFileReader, PdfFileWriter
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
@@ -18,6 +20,7 @@ from src.comm.db import update
 from src.comm.log import initialize_log, console_log
 from src.comm.query import get_upd_yes_lpas_header, get_upd_err_lpas_header
 from src.comm.util import exec_command
+from src.converter.core import rotate_pdf
 
 
 @cache_func
@@ -67,37 +70,69 @@ async def delete_files(src_list, key):
             logging.error(f'예외 발생=|{e}|')
 
 
+async def sub_merge_0(src_list, o_file, size):
+    # 최종 결과물을 담을 캔버스 생성
+    width, height = size
+    c = canvas.Canvas(o_file, pagesize=(width * mm, height * mm))
+    c.showPage()
+    c.save()
+    logging.info(f'최종 결과물 바탕 생성=|{o_file}|')
+
+    # 구성 요소 이미지들을 병합
+    fd_list = []
+    result = PdfFileReader(o_file, 'rb').getPage(0)
+    for src in sorted(src_list, key=lambda x: x['priority']):
+        fd_list.append(fd := open(src['resized'], 'rb'))
+        reader = PdfFileReader(fd)
+        page = reader.getPage(0)
+        result.mergePage(page)
+        logging.info(f'최종 결과물에 구성 요소 병합=|{src["resized"]}|')
+
+    out = PdfFileWriter()
+    out.addPage(result)
+    with FileIO(o_file, 'wb') as f:
+        out.write(f)
+        logging.info(f'최종 결과물 생성 완료=|{o_file}|')
+
+    for fd in fd_list:
+        fd.close()
+    return True
+
+
+async def sub_merge_1(src_list, o_file, size):
+    width, height = size
+    r = fitz.Rect(0, 0, width, height)
+    ret_pdf = fitz.open()
+    ret_page = ret_pdf.new_page(width=width, height=height)
+    logging.info(f'최종 결과물 바탕 생성=|{o_file}|')
+
+    fd_list = []
+    for src in sorted(src_list, key=lambda x: x['priority']):
+        fd_list.append(pdf := fitz.open(src['resized']))
+        ret_page.show_pdf_page(r, pdf, 0)
+        logging.info(f'최종 결과물에 구성요소 병합=|{src["resized"]}|')
+
+    ret_pdf.save(o_file)
+    ret_pdf.close()
+
+    for fd in fd_list:
+        fd.close()
+    return True
+
+
 async def merge_data(src_list, o_file, size):
+    f_list = [
+        sub_merge_0,
+        sub_merge_1,
+    ]
+
+    def get_f_idx():
+        return 1
+
     try:
-        # 최종 결과물을 담을 캔버스 생성
-        width, height = size
         if not os.path.exists(dir_name := os.path.dirname(o_file)):
             os.makedirs(dir_name)
-        c = canvas.Canvas(o_file, pagesize=(width * mm, height * mm))
-        c.showPage()
-        c.save()
-        logging.info(f'최종 결과물 바탕 생성=|{o_file}|')
-
-        # 구성 요소 이미지들을 병합
-        fd_list = []
-        result = PdfFileReader(o_file, 'rb').getPage(0)
-        for src in sorted(src_list, key=lambda x: x['priority']):
-            fd_list.append(fd := open(src['resized'], 'rb'))
-            reader = PdfFileReader(fd)
-            page = reader.getPage(0)
-            result.mergePage(page)
-            logging.info(f'최종 결과물에 구성 요소 병합=|{src["resized"]}|')
-
-        out = PdfFileWriter()
-        out.addPage(result)
-        with FileIO(o_file, 'wb') as f:
-            out.write(f)
-            logging.info(f'최종 결과물 생성 완료=|{o_file}|')
-
-        for fd in fd_list:
-            fd.close()
-        return True
-
+        return await f_list[get_f_idx()](src_list, o_file, size)
     except FileNotFoundError as e:
         logging.error(f'원본 파일 없음=|{e}|')
     except PermissionError as e:
@@ -113,88 +148,113 @@ async def resize_data(src_list, size):
     width, height = size
 
     def resize_proc(src):
+        # 변환된 파일이 저장되기 전에 먼저 본 코드가 실행될 수 있다.
+        # 반드시 파일이 존재하는지 확인한다.
         name = src['target']
-        with open(name, 'rb') as f:
-            if reader := PdfFileReader(f):
-                page = reader.getPage(0)
+        ok = ready_cont()[2]
+        while ok():
+            if os.path.exists(name):
+                break
+            sleep(0.01)
+        if not ok():
+            return False
 
-                # 이미지가 담길 영역의 좌표(좌측 상단 기준)
-                box_x, box_y = src['coordi']
-                # 영역의 크기
-                box_width, box_height = src['size']
-                # 실제 현재 이미지의 크기
-                is_width, is_height = page.mediaBox.upperRight
-                is_width = float(is_width) / mm
-                is_height = float(is_height) / mm
-                # 스케일 적용
-                rate = src['rate'] if src['rate'] else 100.0
-                scale = round(rate / 100.0, 2)
-                img_width = round(is_width * scale, 2)
-                img_height = round(is_height * scale, 2)
+        lmt_count = 10
+        try_count = 0
+        while ok():
+            try:
+                with open(name, 'rb') as f:
+                    if reader := PdfFileReader(f):
+                        page = reader.getPage(0)
 
-                # 텍스트의 반시계방향 90 회전 경우
-                if (src['rotate'] if src['rotate'] else 0) == 90:
-                    box_y += (box_width - box_height)
-                    src['position'] = 'lt'
+                        # 이미지가 담길 영역의 좌표(좌측 상단 기준)
+                        box_x, box_y = src['coordi']
+                        # 영역의 크기
+                        box_width, box_height = src['size']
+                        # 실제 현재 이미지의 크기
+                        is_width, is_height = page.mediaBox.upperRight
+                        is_width = float(is_width) / mm
+                        is_height = float(is_height) / mm
+                        # 스케일 적용
+                        rate = src['rate'] if src['rate'] else 100.0
+                        scale = round(rate / 100.0, 2)
+                        img_width = round(is_width * scale, 2)
+                        img_height = round(is_height * scale, 2)
 
-                # 이미지가 위치할 좌표
-                align = src['position'].lower() if src['position'] else 'cm'
-                if align == 'lt':
-                    img_x = box_x
-                    img_y = box_y
-                elif align == 'lm':
-                    img_x = box_x
-                    img_y = box_y + (box_height - img_height) / 2
-                elif align == 'lb':
-                    img_x = box_x
-                    img_y = box_y + box_height - img_height
-                elif align == 'ct':
-                    img_x = box_x + (box_width - img_width) / 2
-                    img_y = box_y
-                elif align == 'cm':
-                    img_x = box_x + (box_width - img_width) / 2
-                    img_y = box_y + (box_height - img_height) / 2
-                elif align == 'cb':
-                    img_x = box_x + (box_width - img_width) / 2
-                    img_y = box_y + (box_height - img_height)
-                elif align == 'rt':
-                    img_x = box_x + (box_width - img_width)
-                    img_y = box_y
-                elif align == 'rm':
-                    img_x = box_x + (box_width - img_width)
-                    img_y = box_y + (box_height - img_height) / 2
-                elif align == 'rb':
-                    img_x = box_x + (box_width - img_width)
-                    img_y = box_y + (box_height - img_height)
-                else:
-                    img_x = box_x + (box_width - img_width) / 2
-                    img_y = box_y + (box_height - img_height) / 2
+                        # 텍스트의 반시계방향 90 회전 경우
+                        if (src['rotate'] if src['rotate'] else 0) == 90:
+                            box_y += (box_width - box_height)
+                            src['position'] = 'lt'
 
-                # 마진 계산
-                l_margin = img_x
-                b_margin = height - (img_y + img_height)
+                        # 이미지가 위치할 좌표
+                        align = src['position'].lower() if src['position'] else 'cm'
+                        if align == 'lt':
+                            img_x = box_x
+                            img_y = box_y
+                        elif align == 'lm':
+                            img_x = box_x
+                            img_y = box_y + (box_height - img_height) / 2
+                        elif align == 'lb':
+                            img_x = box_x
+                            img_y = box_y + box_height - img_height
+                        elif align == 'ct':
+                            img_x = box_x + (box_width - img_width) / 2
+                            img_y = box_y
+                        elif align == 'cm':
+                            img_x = box_x + (box_width - img_width) / 2
+                            img_y = box_y + (box_height - img_height) / 2
+                        elif align == 'cb':
+                            img_x = box_x + (box_width - img_width) / 2
+                            img_y = box_y + (box_height - img_height)
+                        elif align == 'rt':
+                            img_x = box_x + (box_width - img_width)
+                            img_y = box_y
+                        elif align == 'rm':
+                            img_x = box_x + (box_width - img_width)
+                            img_y = box_y + (box_height - img_height) / 2
+                        elif align == 'rb':
+                            img_x = box_x + (box_width - img_width)
+                            img_y = box_y + (box_height - img_height)
+                        else:
+                            img_x = box_x + (box_width - img_width) / 2
+                            img_y = box_y + (box_height - img_height) / 2
 
-                # 변환된 파일 이름
-                o_file = get_padding_name(name)
-                src['resized'] = o_file
+                        # 마진 계산
+                        l_margin = img_x
+                        b_margin = height - (img_y + img_height)
 
-                command = [
-                    'gs',
-                    '-sDEVICE=pdfwrite',
-                    '-o', o_file,
-                    '-dFIXEDMEDIA',
-                    f'-dDEVICEWIDTHPOINTS={width * mm}',
-                    f'-dDEVICEHEIGHTPOINTS={height * mm}',
-                    '-c', f'<</PageOffset [{l_margin * mm} {b_margin * mm}] '
-                          f'/BeginPage {{{scale} {scale} scale}}>> setpagedevice',
-                    '-f', name
-                ]
+                        # 변환된 파일 이름
+                        o_file = get_padding_name(name)
+                        src['resized'] = o_file
 
-            if r := exec_command(command):
-                logging.error(f'사이즈변환 gs 명령 실패=|{r}|')
-                return False
+                        command = [
+                            'gs',
+                            '-sDEVICE=pdfwrite',
+                            '-o', o_file,
+                            '-dFIXEDMEDIA',
+                            f'-dDEVICEWIDTHPOINTS={width * mm}',
+                            f'-dDEVICEHEIGHTPOINTS={height * mm}',
+                            '-c', f'<</PageOffset [{l_margin * mm} {b_margin * mm}] '
+                                  f'/BeginPage {{{scale} {scale} scale}}>> setpagedevice',
+                            '-f', name
+                        ]
 
-            return True
+                        if r := exec_command(command):
+                            logging.error(f'사이즈변환 gs 명령 실패=|{r}|')
+                            return False
+
+                        if (src['rotate'] if src['rotate'] else 0) == 90:
+                            # rotate_pdf(o_file, -90)
+                            rotate_pdf(o_file, 90)
+
+                        return True
+
+            except Exception as e1:
+                try_count += 1
+                if try_count > lmt_count:
+                    logging.error(f'예외 발생=|{e1}| 파일이름=|{name}|')
+                    return False
+                sleep(0.1)
 
     with ThreadPoolExecutor(max_workers=10) as executor:
         futures = [executor.submit(resize_proc, src) for src in src_list]
@@ -279,6 +339,7 @@ async def thread_main(*args):
 
 
 def thread_proc(*args):
+    console_log()
     aio.run(thread_main(*args))
 
 
@@ -295,6 +356,8 @@ async def main_proc(rq):
             except Exception as e:
                 logging.error(e)
             await aio.sleep(1)
+
+    return 'ok'
 
 
 async def merger_proc(rq):

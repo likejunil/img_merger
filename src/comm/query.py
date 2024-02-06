@@ -189,6 +189,7 @@ def get_col_lpas_headers(nt=False):
         'zimgc',
         'i_cnt',
         'l_size',
+        'l_rotate',
     ]
     return get_cols(col_list, nt)
 

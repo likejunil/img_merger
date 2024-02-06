@@ -1,3 +1,4 @@
+import logging
 import os
 
 from PIL import Image
@@ -16,7 +17,8 @@ def conv_eps(filename):
     # Ghostscript를 사용하여 EPS 파일을 PDF로 변환
     # Ghostscript("-sDEVICE=pdfwrite", "-dEPSCrop", "-o", o_name, filename)
     o_name = get_out_name(filename)
-    fit_image_to_pdf(filename, o_name)
+    if r := fit_image_to_pdf(filename, o_name):
+        logging.error(f'eps 를 pdf 로 변환하는 명령 결과=|{r}|')
     return o_name
 
 
