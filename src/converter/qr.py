@@ -146,11 +146,39 @@ def test_dmx():
     img.save(o_file)
 
 
+def test_gs1():
+    from treepoem import generate_barcode
+    from PIL import Image
+
+    def generate_and_print(data, name):
+        datamatrix = generate_barcode(
+            barcode_type='gs1datamatrix',
+            data=data,
+            options={"parsefnc": True, "format": "square", "version": "26x26"})
+
+        dm_size_px = (120, 120)
+        datamatrix = datamatrix.resize(dm_size_px, Image.NEAREST)
+
+        picture_size_px = (200, 200)
+        picture = Image.new('L', picture_size_px, color='white')
+
+        barcode_position_px = (40, 40)
+        picture.paste(datamatrix, barcode_position_px)
+
+        picture.save(name)
+
+    # 0108808563401119215!QWEJ6ukaIky91EE0992UKD5BCPJLFg8QkHZvkKlk0U1VQGvykJTRdlt8NYJ524=
+    content = "(01)08808563401119(21)5!QWEJ6ukaIky(91)EE09(92)UKD5BCPJLFg8QkHZvkKlk0U1VQGvykJTRdlt8NYJ524="
+    o_file = os.path.join(conf.root_path, get_tmp_name(pdf))
+    generate_and_print(content, o_file)
+
+
 def test():
-    test_ean()
-    test_upc()
-    test_qr()
-    test_dmx()
+    # test_ean()
+    # test_upc()
+    # test_qr()
+    # test_dmx()
+    test_gs1()
 
 
 if __name__ == '__main__':
