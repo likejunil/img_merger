@@ -10,6 +10,7 @@ from reportlab.graphics.barcode import eanbc
 from reportlab.graphics.shapes import Drawing
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
+from treepoem import generate_barcode
 
 from conf.conf import config as conf
 from conf.constant import pdf
@@ -92,6 +93,25 @@ def conv_qr(filename):
         return o_name
 
 
+def generate_dmx(data, name, size=None):
+    datamatrix = generate_barcode(
+        barcode_type='gs1datamatrix',
+        data=data,
+        options={"parsefnc": True, "format": "square", "version": "36x36"})
+
+    width, height = 180, 180
+    if size and len(size) == 2:
+        width, height = size
+    dm_size_px = (width, height)
+    datamatrix = datamatrix.resize(dm_size_px, Image.NEAREST)
+
+    margin = 2
+    picture_size_px = (width + 2 * margin, height + 2 * margin)
+    picture = Image.new('L', picture_size_px, color='white')
+    picture.paste(datamatrix, (margin, margin))
+    picture.save(name)
+
+
 def conv_dmx(filename):
     # https://www.keyence.co.kr/ss/products/auto_id/barcode_lecture/basic_2d/datamatrix/
     # ECC200은 최신 버전의 Data Matrix 코드
@@ -107,10 +127,13 @@ def conv_dmx(filename):
         # dmx 파일 이름
         o_name = data.get('name')
 
-        # dmx 이미지 생성
-        dmx_code = encode(content.encode('utf8'))
-        img = Image.frombytes('RGB', (dmx_code.width, dmx_code.height), dmx_code.pixels)
-        img.save(o_name)
+        # 일반 데이터 메트릭스
+        # dmx_code = encode(content.encode('utf8'))
+        # img = Image.frombytes('RGB', (dmx_code.width, dmx_code.height), dmx_code.pixels)
+        # img.save(o_name)
+        # GS1 데이터 메트릭스
+        generate_dmx(content, o_name)
+
         convert_scale(o_name, size)
         return o_name
 
@@ -147,30 +170,15 @@ def test_dmx():
 
 
 def test_gs1():
-    from treepoem import generate_barcode
-    from PIL import Image
-
-    def generate_and_print(data, name):
-        datamatrix = generate_barcode(
-            barcode_type='gs1datamatrix',
-            data=data,
-            options={"parsefnc": True, "format": "square", "version": "26x26"})
-
-        dm_size_px = (120, 120)
-        datamatrix = datamatrix.resize(dm_size_px, Image.NEAREST)
-
-        picture_size_px = (200, 200)
-        picture = Image.new('L', picture_size_px, color='white')
-
-        barcode_position_px = (40, 40)
-        picture.paste(datamatrix, barcode_position_px)
-
-        picture.save(name)
-
-    # 0108808563401119215!QWEJ6ukaIky91EE0992UKD5BCPJLFg8QkHZvkKlk0U1VQGvykJTRdlt8NYJ524=
-    content = "(01)08808563401119(21)5!QWEJ6ukaIky(91)EE09(92)UKD5BCPJLFg8QkHZvkKlk0U1VQGvykJTRdlt8NYJ524="
+    # 1
+    content = "(01)08808563506210(21)5!Nvp>C(LIudn(91)EE09(92)+FkzH4+9khF7uvwpNnRjQCtOBQMNOcgsHo2da5UUWlk="
+    # 2
+    # content = "(01)08808563401119(21)5!QWEJ6ukaIky(91)EE09(92)UKD5BCPJLFg8QkHZvkKlk0U1VQGvykJTRdlt8NYJ524="
+    # 왜 1은 안되고 2는 되지?
+    # 2에서 91 식별자는 인식이 되고, 1에서 91 식별자는 모른다고 하지?
     o_file = os.path.join(conf.root_path, get_tmp_name(pdf))
-    generate_and_print(content, o_file)
+    print(f'출력파일 =|{o_file}|')
+    generate_dmx(content, o_file)
 
 
 def test():
