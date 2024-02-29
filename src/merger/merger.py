@@ -129,6 +129,7 @@ async def merge_data(src_list, o_file, size, rotate):
 
     def get_f_idx():
         return 1
+        # return 0
 
     try:
         if not os.path.exists(dir_name := os.path.dirname(o_file)):
@@ -362,7 +363,7 @@ async def main_proc(rq):
                 logging.debug(f'큐가 비었음')
             except Exception as e:
                 logging.error(e)
-            await aio.sleep(1)
+            await aio.sleep(0.1)
 
     return 'ok'
 

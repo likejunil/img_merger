@@ -231,6 +231,7 @@ async def run_converter(send_q, recv_q, jq):
         t.terminate()
     for t in t_list:
         t.join()
+    return 'ok'
 
 
 async def delete_files(jq):
@@ -255,6 +256,7 @@ async def delete_files(jq):
             logging.debug(f'예외 발생=|{e}|')
 
     logging.info(f'파일 정리 종료')
+    return 'ok'
 
 
 async def converter_proc(rq, wq):
