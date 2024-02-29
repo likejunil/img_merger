@@ -331,7 +331,7 @@ async def proc_job(cq, jq):
                     logging.debug(f'큐가 가득참')
                 except Exception as e:
                     logging.error(e)
-                await aio.sleep(1)
+                await aio.sleep(0.1)
             continue
 
         except aio.QueueEmpty:

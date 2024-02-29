@@ -62,7 +62,7 @@ class Watcher(FileSystemEventHandler):
         self.observer.schedule(self, self.src_dir, recursive=True)
         self.observer.start()
         while self._ok:
-            await aio.sleep(1)
+            await aio.sleep(0.1)
 
     def stop_proc(self):
         self._ok = False

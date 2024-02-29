@@ -243,7 +243,7 @@ async def delete_files(jq):
     ok = ready_cont()[2]
     while ok():
         try:
-            await aio.sleep(1)
+            await aio.sleep(0.1)
             s_key = jq.get_nowait()
             target_list.append(s_key)
             if len(target_list) > 1:
