@@ -19,7 +19,12 @@ from src.converter.core import convert_scale, get_tmp_name
 
 
 def generate_upc(content, o_file):
-    generate_ean(f'0{content}', o_file)
+    # generate_ean(f'0{content}', o_file)
+    from barcode.upc import UPCA
+    from barcode.writer import SVGWriter
+
+    upc = UPCA(content, writer=SVGWriter())
+    upc.save(o_file)
 
 
 def generate_ean(content, o_file):
@@ -148,8 +153,18 @@ def test_ean(content=None):
 
 def test_upc():
     content = '72527273070'
-    content = f'0{content}'
-    test_ean(content)
+    case = 2
+
+    if case == 1:
+        content = f'0{content}'
+        test_ean(content)
+        pass
+    elif case == 2:
+        o_file = os.path.join(conf.root_path, get_tmp_name(''))
+        print(f'파일=|{o_file}| 내용=|{content}|')
+        generate_upc(content, o_file)
+    else:
+        pass
 
 
 def test_qr():
@@ -183,10 +198,10 @@ def test_gs1():
 
 def test():
     # test_ean()
-    # test_upc()
+    test_upc()
     # test_qr()
     # test_dmx()
-    test_gs1()
+    # test_gs1()
 
 
 if __name__ == '__main__':

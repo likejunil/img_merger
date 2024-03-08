@@ -85,7 +85,7 @@ def ready_children(get_procs):
     return start, stop, get
 
 
-def proc(get_procs, schedule_proc=None, clean_proc=None, msg_q=None):
+def proc(get_procs, schedule_proc, clean_proc):
     init_log(get_log_level(), 'monitor')
     logging.info(f'모니터링 프로세스 시작')
 
@@ -95,28 +95,15 @@ def proc(get_procs, schedule_proc=None, clean_proc=None, msg_q=None):
     if (ret := ready_children(get_procs)) is None:
         msg = f'자식 생성 실패, 종료'
         logging.error(msg)
-        if msg_q:
-            msg_q.put(
-                f'*************************\n'
-                f'     {msg}\n'
-                f'*************************\n'
-            )
         return
 
     start, stop, get = ret
     start()
-    if msg_q:
-        msg_q.put(
-            f'*************************\n'
-            f'     프로그램 시작\n'
-            f'*************************\n'
-        )
 
     # -----------------------------
     # 스케줄 관리
     # -----------------------------
-    if schedule_proc:
-        schedule_proc()
+    schedule_proc()
 
     # -----------------------------
     # 모니터링
@@ -130,8 +117,6 @@ def proc(get_procs, schedule_proc=None, clean_proc=None, msg_q=None):
             # is_alive() 를 호출하는 순간, 해당 프로세스가 좀비일 경우 좀비 해제를 실행한다.
             # 따라서 굳이 join() 을 호출할 필요가 없다.
             if not p.is_alive():
-                if msg_q:
-                    msg_q.put(f'{p.name} 프로세스 종료, 다시 시작')
                 logging.error(f'pid=|{p.pid}| {p.name} 프로세스가 종료되었음, 다시 시작..')
                 start(i)
 
@@ -141,16 +126,9 @@ def proc(get_procs, schedule_proc=None, clean_proc=None, msg_q=None):
     logging.critical(f'자원 정리 및 자식 프로세스 종료 시작')
     sleep(1)
     stop()
-    if msg_q:
-        msg_q.put(
-            f'*************************\n'
-            f'     프로그램 종료\n'
-            f'*************************\n'
-        )
 
     # 자원 해제
-    if clean_proc:
-        clean_proc()
+    clean_proc()
     logging.critical(f'모니터링 프로세스 종료')
 
 
@@ -181,7 +159,6 @@ def main_proc():
         cq.close()
         mq.close()
 
-    # proc(get_procs, schedule_proc, clean_proc, mq)
     proc(get_procs, schedule_proc, clean_proc)
 
 
