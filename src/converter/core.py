@@ -82,7 +82,7 @@ def to_pdf(src, dst):
     command = [
         'inkscape',
         src,
-        f'--export-filename={dst}',
+        f'--export-pdf={dst}',
     ]
     return exec_command(command)
 

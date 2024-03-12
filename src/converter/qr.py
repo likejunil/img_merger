@@ -13,9 +13,9 @@ from reportlab.pdfgen import canvas
 from treepoem import generate_barcode
 
 from conf.conf import config as conf
-from conf.constant import pdf
+from conf.constant import pdf, svg
 from src.comm.log import console_log
-from src.converter.core import convert_scale, get_tmp_name
+from src.converter.core import convert_scale, get_tmp_name, to_pdf, change_ext
 
 
 def generate_upc(content, o_file):
@@ -24,7 +24,10 @@ def generate_upc(content, o_file):
     from barcode.writer import SVGWriter
 
     upc = UPCA(content, writer=SVGWriter())
-    upc.save(o_file)
+    base = os.path.splitext(o_file)[0]
+    upc.save(base)
+    to_pdf(o_file, change_ext(o_file))
+    os.remove(f'{base}{svg}')
 
 
 def generate_ean(content, o_file):
@@ -32,9 +35,8 @@ def generate_ean(content, o_file):
     barcode = eanbc.Ean13BarcodeWidget(content)
 
     # 바코드 속성 설정
-    # barcode.barHeight = 20 * mm
-    # barcode.fontSize = 11
-    barcode.barHeight = 16 * mm
+    # barcode.barHeight = 16 * mm
+    barcode.barHeight = 13 * mm
     barcode.fontSize = 8
 
     # 바코드 바운딩 박스의 크기를 얻어 Drawing 객체 크기 설정
@@ -160,7 +162,7 @@ def test_upc():
         test_ean(content)
         pass
     elif case == 2:
-        o_file = os.path.join(conf.root_path, get_tmp_name(''))
+        o_file = os.path.join(conf.root_path, get_tmp_name(svg))
         print(f'파일=|{o_file}| 내용=|{content}|')
         generate_upc(content, o_file)
     else:
@@ -197,8 +199,8 @@ def test_gs1():
 
 
 def test():
-    # test_ean()
-    test_upc()
+    test_ean()
+    # test_upc()
     # test_qr()
     # test_dmx()
     # test_gs1()

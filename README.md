@@ -4,6 +4,7 @@
 
 - Ghostscript (eps 파일을 pdf 로 변환하기 위해)
 - libdmtx (data matrix 를 생성하기 위해)
+- inkscape (upc 타입의 바코드를 생성하기 위해)
 
 ### 주의사항
 
