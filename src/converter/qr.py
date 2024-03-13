@@ -10,11 +10,11 @@ from reportlab.graphics.barcode import eanbc
 from reportlab.graphics.shapes import Drawing
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
-from treepoem import generate_barcode
 
 from conf.conf import config as conf
 from conf.constant import pdf, svg
 from src.comm.log import console_log
+from src.comm.util import exec_command
 from src.converter.core import convert_scale, get_tmp_name, to_pdf, change_ext
 
 
@@ -35,8 +35,7 @@ def generate_ean(content, o_file):
     barcode = eanbc.Ean13BarcodeWidget(content)
 
     # 바코드 속성 설정
-    # barcode.barHeight = 16 * mm
-    barcode.barHeight = 13 * mm
+    barcode.barHeight = 16 * mm
     barcode.fontSize = 8
 
     # 바코드 바운딩 박스의 크기를 얻어 Drawing 객체 크기 설정
@@ -100,23 +99,15 @@ def conv_qr(filename):
         return o_name
 
 
-def generate_dmx(data, name, size=None):
-    datamatrix = generate_barcode(
-        barcode_type='gs1datamatrix',
-        data=data,
-        options={"parsefnc": True, "format": "square", "version": "36x36"})
-
-    width, height = 180, 180
-    if size and len(size) == 2:
-        width, height = size
-    dm_size_px = (width, height)
-    datamatrix = datamatrix.resize(dm_size_px, Image.NEAREST)
-
-    margin = 2
-    picture_size_px = (width + 2 * margin, height + 2 * margin)
-    picture = Image.new('L', picture_size_px, color='white')
-    picture.paste(datamatrix, (margin, margin))
-    picture.save(name)
+def generate_dmx(data, o_file):
+    jar = 'DataMatrixLib.jar'
+    prog = 'gs1.DmxGs1'
+    path = os.path.dirname(o_file)
+    file = os.path.basename(o_file)
+    command = [
+        'java', '-cp', f'.:{conf.lib_path}/{jar}:{conf.bin_path}', f'{prog}', f'{data}', f'{path}/', f'{file}'
+    ]
+    exec_command(command)
 
 
 def conv_dmx(filename):
@@ -187,23 +178,18 @@ def test_dmx():
 
 
 def test_gs1():
-    # 1
-    content = "(01)08808563506210(21)5!Nvp>C(LIudn(91)EE09(92)+FkzH4+9khF7uvwpNnRjQCtOBQMNOcgsHo2da5UUWlk="
-    # 2
-    # content = "(01)08808563401119(21)5!QWEJ6ukaIky(91)EE09(92)UKD5BCPJLFg8QkHZvkKlk0U1VQGvykJTRdlt8NYJ524="
-    # 왜 1은 안되고 2는 되지?
-    # 2에서 91 식별자는 인식이 되고, 1에서 91 식별자는 모른다고 하지?
-    o_file = os.path.join(conf.root_path, get_tmp_name(pdf))
+    content = '0108808563578569215!J!-=D_0"KeL91EE0992/qn8IuxUGoXEtgQ8Jn307wxRePzm/EqMI54CEJkzx2Y='
+    o_file = os.path.join(conf.root_path, get_tmp_name())
     print(f'출력파일 =|{o_file}|')
     generate_dmx(content, o_file)
 
 
 def test():
-    test_ean()
+    # test_ean()
     # test_upc()
     # test_qr()
     # test_dmx()
-    # test_gs1()
+    test_gs1()
 
 
 if __name__ == '__main__':

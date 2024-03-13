@@ -87,7 +87,7 @@ def ready_children(get_procs):
 
 def proc(get_procs, schedule_proc, clean_proc):
     init_log(get_log_level(), 'monitor')
-    logging.info(f'모니터링 프로세스 시작')
+    logging.info(f'모니터링 프로세스 시작, 현재 디렉토리=|{os.getcwd()}|')
 
     # -----------------------------
     # 관리할 프로세스 목록 생성

@@ -8,6 +8,8 @@ log_path = 'log_path'
 data_path = 'data_path'
 pid_path = 'pid_path'
 font_path = 'font_path'
+lib_path = 'lib_path'
+bin_path = 'bin_path'
 yaml_file = 'yaml_file'
 
 # -------------------

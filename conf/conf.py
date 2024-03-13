@@ -24,6 +24,8 @@ def ready_conf():
     conf_dict[_.data_path] = os.path.join(root_path, 'data')
     conf_dict[_.pid_path] = os.path.join(root_path, 'pid')
     conf_dict[_.font_path] = os.path.join(root_path, 'fonts')
+    conf_dict[_.lib_path] = os.path.join(root_path, 'lib')
+    conf_dict[_.bin_path] = os.path.join(root_path, 'bin')
     conf_dict[_.yaml_file] = os.getenv(_.yaml_file.upper())
     conf_dict[_.passwd] = os.getenv(_.passwd.upper())
 

@@ -11,7 +11,7 @@ from conf.constant import pdf
 from src.comm.util import exec_command
 
 
-def get_tmp_name(ext):
+def get_tmp_name(ext=''):
     tmp_file = os.path.join(f'{conf.tmp_path}', f'{str(uuid4())}{ext}')
     logging.info(f'이미지 생성을 위한 임시파일=|{tmp_file}|')
     return tmp_file
@@ -126,9 +126,7 @@ def fit_image_to_eps(src, dst):
 
 
 def test():
-    filename = '/apple/fruite/123.txt'
-    ret = get_out_name(filename)
-    print(ret)
+    pass
 
 
 if __name__ == '__main__':
