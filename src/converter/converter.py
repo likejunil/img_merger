@@ -8,7 +8,7 @@ import threading
 from collections import deque
 from multiprocessing import Process, Queue
 from queue import Full, Empty
-from shutil import copy
+from shutil import copyfile
 from uuid import uuid4
 
 from conf.conf import config as conf
@@ -131,7 +131,7 @@ async def run_converter(send_q, recv_q, jq):
                         f_name = f'{get_dst_path()}/{i_name}'
                         s['target'] = change_ext(f'{o_path}/{i_name}', pdf)
                         logging.info(f'이미지 파일 복사, |{src}| => |{f_name}|')
-                        copy(src, f_name)
+                        copyfile(src, f_name)
                         logging.info(f'파일 복사 완료, |{src}| => |{f_name}|')
                         count += 1
                         continue

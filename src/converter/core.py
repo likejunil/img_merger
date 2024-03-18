@@ -88,11 +88,12 @@ def to_pdf(src, dst):
 
 
 def png2svg(src, dst):
+    # todo 2024.0313 by june1
+    #  - 작동 확인 요망
     command = [
         'inkscape',
         src,
-        '--export-type=svg',
-        f'--export-filename={dst}'
+        f'--export-svg={dst}',
     ]
     return exec_command(command)
 

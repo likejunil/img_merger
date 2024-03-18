@@ -6,16 +6,14 @@ import segno
 from PIL import Image
 from pylibdmtx.pylibdmtx import encode
 from reportlab.graphics import renderPDF
-from reportlab.graphics.barcode import eanbc
-from reportlab.graphics.shapes import Drawing
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 
 from conf.conf import config as conf
-from conf.constant import pdf, svg
+from conf.constant import pdf, svg, png
 from src.comm.log import console_log
 from src.comm.util import exec_command
-from src.converter.core import convert_scale, get_tmp_name, to_pdf, change_ext
+from src.converter.core import convert_scale, get_tmp_name, to_pdf, change_ext, png2svg
 
 
 def generate_upc(content, o_file):
@@ -31,6 +29,10 @@ def generate_upc(content, o_file):
 
 
 def generate_ean(content, o_file):
+    from reportlab.graphics.barcode import eanbc
+    from reportlab.pdfgen import canvas
+    from reportlab.graphics.shapes import Drawing
+
     # 바코드 생성
     barcode = eanbc.Ean13BarcodeWidget(content)
 
@@ -67,16 +69,19 @@ def conv_bar(filename):
         o_name = data.get('name')
 
         # 바코드를 생성하고 임시 파일에 저장
-        if kind == 'ean':
-            generate_ean(content, o_name)
-        elif kind == 'upc':
-            generate_upc(content, o_name)
-        else:
-            logging.error(f'바코드 이미지 생성, 도달할 수 없는 코드')
-            return
+        png_file = os.path.join(conf.root_path, get_tmp_name(png))
+        command = ['java', '-jar', f'{conf.lib_path}/barcode.jar', f'{kind}', f'{content}', f'{png_file}', "10"]
+        exec_command(command)
+
+        img = Image.open(png_file)
+        c = canvas.Canvas(o_name)
+        c.setPageSize((img.width, img.height))
+        c.drawInlineImage(png_file, 0, 0, img.width, img.height)
+        c.save()
+        os.remove(png_file)
 
         # 스케일 조정
-        convert_scale(o_name, size)
+        # convert_scale(o_name, size)
         return o_name
 
 
@@ -95,7 +100,7 @@ def conv_qr(filename):
 
         qr = segno.make(content)
         qr.save(o_name, kind="pdf")
-        convert_scale(o_name, size)
+        # convert_scale(o_name, size)
         return o_name
 
 
@@ -107,7 +112,13 @@ def generate_dmx(data, o_file):
     command = [
         'java', '-cp', f'.:{conf.lib_path}/{jar}:{conf.bin_path}', f'{prog}', f'{data}', f'{path}/', f'{file}'
     ]
-    exec_command(command)
+    if exec_command(command):
+        logging.error(f'Data Matrix 생성 실패, 파일=|{o_file}|')
+        return
+
+    src = change_ext(o_file, png)
+    dst = o_file
+    png2svg(src, dst)
 
 
 def conv_dmx(filename):
@@ -131,8 +142,7 @@ def conv_dmx(filename):
         # img.save(o_name)
         # GS1 데이터 메트릭스
         generate_dmx(content, o_name)
-
-        convert_scale(o_name, size)
+        # convert_scale(o_name, size)
         return o_name
 
 
@@ -145,7 +155,7 @@ def test_ean(content=None):
 
 
 def test_upc():
-    content = '72527273070'
+    content = '725272730706'
     case = 2
 
     if case == 1:
@@ -158,6 +168,27 @@ def test_upc():
         generate_upc(content, o_file)
     else:
         pass
+
+
+def test_convert(src, dst):
+    from PIL import Image
+    from reportlab.pdfgen import canvas
+
+    img = Image.open(src)
+    c = canvas.Canvas(dst)
+    c.setPageSize((img.width, img.height))
+    c.drawInlineImage(src, 0, 0, img.width, img.height)
+    c.save()
+
+
+def test_bar(kind, content):
+    if kind in ['upc', 'ean']:
+        png_file = os.path.join(conf.root_path, get_tmp_name(png))
+        pdf_file = change_ext(png_file, pdf)
+        print(f'파일=|{png_file}| 내용=|{content}|')
+        command = ['java', '-jar', f'{conf.lib_path}/barcode.jar', f'{kind}', f'{content}', f'{png_file}', '10']
+        if not exec_command(command):
+            test_convert(png_file, pdf_file)
 
 
 def test_qr():
@@ -189,7 +220,21 @@ def test():
     # test_upc()
     # test_qr()
     # test_dmx()
-    test_gs1()
+    # test_gs1()
+    test_bar('upc', '725272730706')
+    test_bar('ean', '8808563461533')
+
+
+def test_png2pdf(src, dst):
+    from PIL import Image
+    from reportlab.pdfgen import canvas
+
+    png_file = src
+    pdf_file = dst
+    img = Image.open(png_file)
+    c = canvas.Canvas(pdf_file, pagesize=(img.width, img.height))
+    c.drawImage(png_file, 0, 0, width=img.width, height=img.height)
+    c.save()
 
 
 if __name__ == '__main__':
