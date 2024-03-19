@@ -57,6 +57,7 @@ async def delete_files(src_list, key):
                 # out 디렉토리
                 os.remove(src['target'])
                 os.remove(src['resized'])
+                pass
 
         except Exception as e:
             logging.error(f'예외 발생=|{e}|')
@@ -67,6 +68,7 @@ async def delete_files(src_list, key):
     for file in files:
         try:
             os.remove(file)
+            pass
         except Exception as e:
             logging.error(f'예외 발생=|{e}|')
 

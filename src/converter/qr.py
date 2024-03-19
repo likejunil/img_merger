@@ -4,7 +4,6 @@ import os
 
 import segno
 from PIL import Image
-from pylibdmtx.pylibdmtx import encode
 from reportlab.graphics import renderPDF
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
@@ -13,7 +12,7 @@ from conf.conf import config as conf
 from conf.constant import pdf, svg, png
 from src.comm.log import console_log
 from src.comm.util import exec_command, req_post
-from src.converter.core import get_tmp_name, to_pdf, change_ext
+from src.converter.core import get_tmp_name, to_pdf, change_ext, convert_scale
 
 
 def generate_upc(content, o_file):
@@ -99,8 +98,7 @@ def conv_bar(filename):
 
         if ret:
             convert(png_file, o_name)
-            # 스케일 조정
-            # convert_scale(o_name, size)
+            convert_scale(o_name, size)
             return o_name
 
 
@@ -119,25 +117,26 @@ def conv_qr(filename):
 
         qr = segno.make(content)
         qr.save(o_name, kind="pdf")
-        # convert_scale(o_name, size)
+        convert_scale(o_name, size)
         return o_name
 
 
 def generate_dmx(data, o_file):
     jar = 'DataMatrixLib.jar'
     prog = 'gs1.DmxGs1'
-    path = os.path.dirname(o_file)
-    file = os.path.basename(o_file)
+    png_file = os.path.join(conf.root_path, get_tmp_name())
+    path = os.path.dirname(png_file)
+    file = os.path.basename(png_file)
+    name = change_ext(file, '')
     command = [
-        'java', '-cp', f'.:{conf.lib_path}/{jar}:{conf.bin_path}', f'{prog}', f'{data}', f'{path}/', f'{file}'
+        'java', '-cp', f'.:{conf.lib_path}/{jar}:{conf.bin_path}', f'{prog}', f'{data}', f'{path}/', f'{name}'
     ]
     if exec_command(command):
         logging.error(f'Data Matrix 생성 실패, 파일=|{o_file}|')
         return
 
     src = change_ext(o_file, png)
-    dst = change_ext(src, pdf)
-    convert(src, dst)
+    convert(src, o_file)
 
 
 def conv_dmx(filename):
@@ -161,7 +160,7 @@ def conv_dmx(filename):
         # img.save(o_name)
         # GS1 데이터 메트릭스
         generate_dmx(content, o_name)
-        # convert_scale(o_name, size)
+        convert_scale(o_name, size)
         return o_name
 
 
@@ -197,7 +196,6 @@ def test_bar(kind, content):
         if not (ret := req_barcode(kind, content, png_file)):
             command = ['java', '-jar', f'{conf.lib_path}/barcode.jar', f'{kind}', f'{content}', f'{png_file}', '10']
             ret = exec_command(command)
-
         if ret:
             convert(png_file, pdf_file)
 
@@ -210,27 +208,15 @@ def test_qr():
     qr.save(o_file, kind="pdf")
 
 
-def test_dmx():
-    content = 'Flying car, To the moon~! 123.987'
-    o_file = os.path.join(conf.root_path, get_tmp_name(pdf))
-    print(f'파일=|{o_file}| 내용=|{content}|')
-    dmx_code = encode(content.encode('utf8'))
-    img = Image.frombytes('RGB', (dmx_code.width, dmx_code.height), dmx_code.pixels)
-    img.save(o_file)
-
-
 def test_gs1():
     content = '0108808563578569215!J!-=D_0"KeL91EE0992/qn8IuxUGoXEtgQ8Jn307wxRePzm/EqMI54CEJkzx2Y='
-    o_file = os.path.join(conf.root_path, get_tmp_name())
-    print(f'출력파일 =|{o_file}|')
+    o_file = os.path.join(conf.root_path, get_tmp_name(pdf))
+    print(f'파일=|{o_file}| 내용=|{content}|')
     generate_dmx(content, o_file)
 
 
 def test():
-    # test_ean()
-    # test_upc()
-    # test_qr()
-    # test_dmx()
+    test_qr()
     test_gs1()
     test_bar('upc', '725272730706')
     test_bar('ean', '8808563461533')
