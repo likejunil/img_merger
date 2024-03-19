@@ -52,11 +52,9 @@ starter:
 
 ########################
 converter:
-  barcode:
-    bar: "EAN13"
-    # bar: "UPCA"
-    qr: ""
-    dmtx: ""
+  bar_addr: "http://localhost"
+  bar_port: 33456
+  bar_url: "/barcode"
 
 ########################
 merger:

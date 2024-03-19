@@ -87,17 +87,6 @@ def to_pdf(src, dst):
     return exec_command(command)
 
 
-def png2svg(src, dst):
-    # todo 2024.0313 by june1
-    #  - 작동 확인 요망
-    command = [
-        'inkscape',
-        src,
-        f'--export-svg={dst}',
-    ]
-    return exec_command(command)
-
-
 def fit_image_to_pdf(src, dst):
     command = [
         'gs',

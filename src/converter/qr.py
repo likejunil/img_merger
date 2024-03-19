@@ -12,8 +12,8 @@ from reportlab.pdfgen import canvas
 from conf.conf import config as conf
 from conf.constant import pdf, svg, png
 from src.comm.log import console_log
-from src.comm.util import exec_command
-from src.converter.core import convert_scale, get_tmp_name, to_pdf, change_ext, png2svg
+from src.comm.util import exec_command, req_post
+from src.converter.core import get_tmp_name, to_pdf, change_ext
 
 
 def generate_upc(content, o_file):
@@ -54,6 +54,28 @@ def generate_ean(content, o_file):
     c.save()
 
 
+def req_barcode(_kind, _content, _png_file):
+    url = f'{conf.bar_addr}:{conf.bar_port}{conf.bar_url}'
+    req_data = {
+        'type': _kind,
+        'content': _content,
+        'file': _png_file,
+    }
+
+    if req_post(url, req_data).get('msg') == 'ok':
+        logging.info(f'바코드 생성 성공=|{_content}|')
+        return True
+
+
+def convert(src, dst):
+    img = Image.open(src)
+    c = canvas.Canvas(dst)
+    c.setPageSize((img.width, img.height))
+    c.drawInlineImage(src, 0, 0, img.width, img.height)
+    c.save()
+    os.remove(src)
+
+
 def conv_bar(filename):
     with open(filename, 'rt', encoding='utf8') as f:
         data = json.load(f)
@@ -67,22 +89,19 @@ def conv_bar(filename):
         content = data.get('text')
         # 바코드 이미지 파일 이름
         o_name = data.get('name')
-
-        # 바코드를 생성하고 임시 파일에 저장
+        # 생성할 이미지 파일 이름
         png_file = os.path.join(conf.root_path, get_tmp_name(png))
-        command = ['java', '-jar', f'{conf.lib_path}/barcode.jar', f'{kind}', f'{content}', f'{png_file}', "10"]
-        exec_command(command)
 
-        img = Image.open(png_file)
-        c = canvas.Canvas(o_name)
-        c.setPageSize((img.width, img.height))
-        c.drawInlineImage(png_file, 0, 0, img.width, img.height)
-        c.save()
-        os.remove(png_file)
+        if not (ret := req_barcode(kind, content, png_file)):
+            # 바코드를 생성하고 임시 파일에 저장
+            command = ['java', '-jar', f'{conf.lib_path}/barcode.jar', f'{kind}', f'{content}', f'{png_file}', "10"]
+            ret = True if exec_command(command) == 0 else False
 
-        # 스케일 조정
-        # convert_scale(o_name, size)
-        return o_name
+        if ret:
+            convert(png_file, o_name)
+            # 스케일 조정
+            # convert_scale(o_name, size)
+            return o_name
 
 
 def conv_qr(filename):
@@ -117,8 +136,8 @@ def generate_dmx(data, o_file):
         return
 
     src = change_ext(o_file, png)
-    dst = o_file
-    png2svg(src, dst)
+    dst = change_ext(src, pdf)
+    convert(src, dst)
 
 
 def conv_dmx(filename):
@@ -170,25 +189,17 @@ def test_upc():
         pass
 
 
-def test_convert(src, dst):
-    from PIL import Image
-    from reportlab.pdfgen import canvas
-
-    img = Image.open(src)
-    c = canvas.Canvas(dst)
-    c.setPageSize((img.width, img.height))
-    c.drawInlineImage(src, 0, 0, img.width, img.height)
-    c.save()
-
-
 def test_bar(kind, content):
     if kind in ['upc', 'ean']:
         png_file = os.path.join(conf.root_path, get_tmp_name(png))
         pdf_file = change_ext(png_file, pdf)
         print(f'파일=|{png_file}| 내용=|{content}|')
-        command = ['java', '-jar', f'{conf.lib_path}/barcode.jar', f'{kind}', f'{content}', f'{png_file}', '10']
-        if not exec_command(command):
-            test_convert(png_file, pdf_file)
+        if not (ret := req_barcode(kind, content, png_file)):
+            command = ['java', '-jar', f'{conf.lib_path}/barcode.jar', f'{kind}', f'{content}', f'{png_file}', '10']
+            ret = exec_command(command)
+
+        if ret:
+            convert(png_file, pdf_file)
 
 
 def test_qr():
@@ -220,21 +231,9 @@ def test():
     # test_upc()
     # test_qr()
     # test_dmx()
-    # test_gs1()
+    test_gs1()
     test_bar('upc', '725272730706')
     test_bar('ean', '8808563461533')
-
-
-def test_png2pdf(src, dst):
-    from PIL import Image
-    from reportlab.pdfgen import canvas
-
-    png_file = src
-    pdf_file = dst
-    img = Image.open(png_file)
-    c = canvas.Canvas(pdf_file, pagesize=(img.width, img.height))
-    c.drawImage(png_file, 0, 0, width=img.width, height=img.height)
-    c.save()
 
 
 if __name__ == '__main__':

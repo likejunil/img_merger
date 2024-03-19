@@ -1,5 +1,4 @@
 import os
-import platform
 from collections import namedtuple
 
 import yaml
@@ -66,10 +65,9 @@ def ready_conf():
 
     # 바코드 관련
     converter = yml_conf[_.converter]
-    conf_dict[_.bar_type] = converter[_.barcode][_.bar]
-
-    #
-    os_name = platform.system()
+    conf_dict[_.bar_addr] = converter[_.bar_addr]
+    conf_dict[_.bar_port] = converter[_.bar_port]
+    conf_dict[_.bar_url] = converter[_.bar_url]
 
     # -----------------------
     # namedtuple 로 변환하여 반환

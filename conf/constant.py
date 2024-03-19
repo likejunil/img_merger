@@ -58,9 +58,9 @@ starter = 'starter'
 converter = 'converter'
 merger = 'merger'
 
-barcode = 'barcode'
-bar = 'bar'
-bar_type = 'bar_type'
+bar_addr = 'bar_addr'
+bar_port = 'bar_port'
+bar_url = 'bar_url'
 
 # -------------------
 # ext
