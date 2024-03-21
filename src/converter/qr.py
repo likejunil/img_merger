@@ -98,7 +98,8 @@ def conv_bar(filename):
 
         if ret:
             convert(png_file, o_name)
-            convert_scale(o_name, size)
+            convert_scale(o_name, (31.4, 11.7))
+            # convert_scale(o_name, size)
             return o_name
 
 

@@ -99,11 +99,14 @@ async def sub_merge_0(src_list, o_file, size):
 
     for fd in fd_list:
         fd.close()
+
     return True
 
 
 async def sub_merge_1(src_list, o_file, size):
     width, height = size
+    width *= mm
+    height *= mm
     r = fitz.Rect(0, 0, width, height)
     ret_pdf = fitz.open()
     ret_page = ret_pdf.new_page(width=width, height=height)
@@ -120,6 +123,7 @@ async def sub_merge_1(src_list, o_file, size):
 
     for fd in fd_list:
         fd.close()
+
     return True
 
 
