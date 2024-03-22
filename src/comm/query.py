@@ -1,5 +1,6 @@
 import logging
 from collections import namedtuple
+from datetime import datetime as dt
 
 
 ############################
@@ -62,9 +63,14 @@ def get_upd_lpas_group_ret(mandt, ebeln, vbeln, zimgc):
     zimgc_sql = f" AND (TRIM(ZIMGC) IS NULL OR TRIM(ZIMGC) = '{get_state_group_init()}')" \
         if zimgc == get_state_group_run() \
         else f" AND TRIM(ZIMGC) = '{get_state_group_run()}' "
+
+    # zimgc 가 성공(Y)일 경우 ZIMGD 에 yyyymmdd 정보를 입력해야 한다.
+    zimgd_sql = f", ZIMGD = '{dt.today().strftime('%Y%m%d')}'" if zimgc == get_state_group_yes() else ""
+
     sql = \
         f" UPDATE LPAS_ORDER_G " \
         f" SET ZIMGC = '{zimgc}' " \
+        f"{zimgd_sql}" \
         f" WHERE 1 = 1 " \
         f"{zimgc_sql}" \
         f" AND MANDT = '{mandt}' " \
@@ -86,10 +92,16 @@ def get_upd_err_lpas_group(mandt, ebeln, vbeln, err=None):
     return get_upd_lpas_group_ret(mandt, ebeln, vbeln, err if err else get_state_group_err())
 
 
-def get_upd_lpas_header_ret(mandt, ebeln, vbeln, posnr, matnr, ret):
+def get_upd_lpas_header_ret(mandt, ebeln, vbeln, posnr, matnr, zimgc, name=''):
+    # zimgc 가 성공(Y)일 경우 ZIMGD 에 yyyymmdd 정보를 입력해야 한다.
+    zimgd_sql = f", ZIMGD = '{dt.today().strftime('%Y%m%d')}'" if zimgc == get_state_header_yes() else ""
+    combined_id_sql = f", COMBINED_ID = '{name}'" if zimgc == get_state_header_yes() else ""
+
     sql = \
         f" UPDATE LPAS_ORDER_H " \
-        f" SET ZIMGC = '{ret}' " \
+        f" SET ZIMGC = '{zimgc}' " \
+        f"{zimgd_sql}" \
+        f"{combined_id_sql}" \
         f" WHERE 1 = 1 " \
         f" AND (TRIM(ZIMGC) IS NULL OR TRIM(ZIMGC) = '{get_state_header_init()}')" \
         f" AND MANDT = '{mandt}' " \
@@ -101,8 +113,8 @@ def get_upd_lpas_header_ret(mandt, ebeln, vbeln, posnr, matnr, ret):
     return sql
 
 
-def get_upd_yes_lpas_header(mandt, ebeln, vbeln, posnr, matnr):
-    return get_upd_lpas_header_ret(mandt, ebeln, vbeln, posnr, matnr, get_state_header_yes())
+def get_upd_yes_lpas_header(mandt, ebeln, vbeln, posnr, matnr, name):
+    return get_upd_lpas_header_ret(mandt, ebeln, vbeln, posnr, matnr, get_state_header_yes(), name)
 
 
 def get_upd_err_lpas_header(mandt, ebeln, vbeln, posnr, matnr, err=None):

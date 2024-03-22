@@ -83,7 +83,7 @@ def conv_bar(filename):
         # 바코드의 종류
         kind = data.get('type_').lower()
         # 바코드의 이미지 크기
-        size = data.get('size')
+        # size = data.get('size')
         # 바코드의 내용
         content = data.get('text')
         # 바코드 이미지 파일 이름
@@ -97,9 +97,10 @@ def conv_bar(filename):
             ret = True if exec_command(command) == 0 else False
 
         if ret:
-            convert(png_file, o_name)
-            convert_scale(o_name, (31.4, 11.7))
-            # convert_scale(o_name, size)
+            tmp = get_tmp_name('pdf')
+            convert(png_file, tmp)
+            convert_scale(tmp, (31.4, 11.7))
+            os.rename(tmp, o_name)
             return o_name
 
 

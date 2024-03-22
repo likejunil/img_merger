@@ -235,6 +235,19 @@ async def resize_data(src_list, size):
                         l_margin = img_x
                         b_margin = height - (img_y + img_height)
 
+                        # 바코드의 경우 로그 추가
+                        if (type_ := src.get('type_')) in ('EAN', 'UPC'):
+                            logging.info(
+                                f'바코드 관련 리사이징 작업, '
+                                f'name=|{name}| type=|{type_}| align=|{align}| scale=|{scale}| '
+                                f'width=|{width}| height=|{height}| '
+                                f'box_x=|{box_x}| box_y=|{box_y}| '
+                                f'box_width=|{box_width}| box_height=|{box_height}| '
+                                f'page.mediaBox.upperRight=|{page.mediaBox.upperRight}| '
+                                f'img_x=|{img_x}| img_y=|{img_y}| '
+                                f'img_width=|{img_width}| img_height=|{img_height}| '
+                                f'l_margin=|{l_margin}| b_margin=|{b_margin}| ')
+
                         # 변환된 파일 이름
                         o_file = get_padding_name(name)
                         src['resized'] = o_file
@@ -326,7 +339,7 @@ async def task_proc(task):
                 await resize_data(src_list, size) and \
                 await merge_data(src_list, name, size, rotate):
             logging.info(f'작업_소요시간, 파일=|{name}| 소요시간=|{time() - s_time}|')
-            update(get_upd_yes_lpas_header(mandt, ebeln, vbeln, posnr, matnr))
+            update(get_upd_yes_lpas_header(mandt, ebeln, vbeln, posnr, matnr, os.path.basename(name)))
             await delete_files(src_list, key)
             return True
         else:
