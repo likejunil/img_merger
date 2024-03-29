@@ -15,8 +15,8 @@ from src.comm.help import get_zip_path, get_pdf_path, make_zip_files
 from src.comm.log import console_log, initialize_log
 from src.comm.query import get_sql_lpas_group, get_sql_server_info, get_upd_lpas_group, get_sql_lpas_headers, \
     get_sql_lpas_items, get_upd_lpas_group_ret, get_upd_run_lpas_group, get_state_group_run, get_state_group_yes, \
-    get_upd_err_lpas_group, get_col_lpas_items, get_state_header_yes, get_state_item_yes, \
-    get_state_header_init, get_state_group_err
+    get_upd_err_lpas_group, get_col_lpas_items, get_state_header_yes, get_state_item_yes, get_state_header_init, \
+    get_state_group_err
 
 
 def get_my_info(hostname):
