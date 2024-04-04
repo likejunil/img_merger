@@ -324,7 +324,7 @@ async def proc_job(cq, jq):
                         'output': o_dict,
                     }
                     cq.put_nowait(jobs_dict)
-                    logging.info(f'변환 모듈에게 작업 송신\n{pprint.pformat(jobs_dict)}')
+                    logging.debug(f'변환 모듈에게 작업 송신\n{pprint.pformat(jobs_dict)}')
                     break
 
                 except Full:

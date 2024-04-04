@@ -106,7 +106,7 @@ async def run_converter(send_q, recv_q, jq):
     while ok():
         if d := recv_q():
             d_dict = pprint.pformat(d)
-            logging.info(f'스타터로부터 정보 수신=|{d_dict}|')
+            logging.debug(f'스타터로부터 정보 수신=|{d_dict}|')
 
             i_dict = d.get('input', {})
             s_count = i_dict.get('count')
@@ -214,7 +214,7 @@ async def run_converter(send_q, recv_q, jq):
             fail_cnt = 0
             while ok():
                 if send_q(d):
-                    logging.info(f'머저에게 정보 송신=|{d_dict}|')
+                    logging.debug(f'머저에게 정보 송신=|{d_dict}|')
                     break
 
                 # 머저에게 데이터 송신 실패

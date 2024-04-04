@@ -315,7 +315,7 @@ async def check_src_list(src_list, lmt_sec=5):
 
 
 async def task_proc(task):
-    logging.info(f'컨버터로부터 데이터 수신=|{pprint.pformat(task)}|')
+    logging.debug(f'컨버터로부터 데이터 수신=|{pprint.pformat(task)}|')
 
     # 출력 정보
     out_data = task.get('output')
