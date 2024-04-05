@@ -1,4 +1,5 @@
 import os
+import sys
 from collections import namedtuple
 
 import yaml
@@ -68,6 +69,12 @@ def ready_conf():
     conf_dict[_.bar_addr] = converter[_.bar_addr]
     conf_dict[_.bar_port] = converter[_.bar_port]
     conf_dict[_.bar_url] = converter[_.bar_url]
+
+    # 작업(newlb) 지시
+    conf_dict[_.newlb] = ''
+    if (n := len(sys.argv)) > 1:
+        newlb = sys.argv[n - 1]
+        conf_dict[_.newlb] = newlb
 
     # -----------------------
     # namedtuple 로 변환하여 반환

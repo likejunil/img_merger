@@ -28,7 +28,11 @@ start() {
     cd ${ROOT}
 
     printf "  2. ${TARGET} 을 실행합니다.\n"
-    ${PROC}
+    if [ "$#" -eq 0 ]; then
+        ${PROC}
+    elif [ "$#" -eq 1 ]; then
+        ${PROC} "$1"
+    fi
     
     if [ $? -eq 0 ]; then
         printf "  3. 프로세스가 성공적으로 실행되었습니다. =[$?]\n"
@@ -39,7 +43,11 @@ start() {
 }
 
 stop() {
-    PID=`ps -ef | grep "${PROC}" | grep -v grep | awk '{print $2}'`
+    if [ "$#" -eq 0 ]; then
+        PID=`ps -ef | grep "${PROC}" | grep -v grep | awk '{print $2}'`
+    elif [ "$#" -eq 1 ]; then
+        PID=`ps -ef | grep "${PROC}" | grep $1 | grep -v grep | awk '{print $2}'`
+    fi
 
     printf "  1. 현재 실행중인 프로세스의 pid를 확인합니다.\n"
     read -d "" -ra pid <<< "$PID"
@@ -70,7 +78,11 @@ case "$1" in
     echo "  |  프로그램을 시작하겠다  |"
     echo " -+-------------------------+-"
     echo ""
-    start
+    if [ "$#" -eq 1 ]; then
+        start
+    elif [ "$#" -eq 2 ]; then
+        start "$2"
+    fi
     ;;
 
 "stop")
@@ -79,7 +91,11 @@ case "$1" in
     echo "  |  프로그램을 종료하겠다  |"
     echo " -+-------------------------+-"
     echo ""
-    stop
+    if [ "$#" -eq 1 ]; then
+        stop
+    elif [ "$#" -eq 2 ]; then
+        stop "$2"
+    fi
     ;;
 
 "status")

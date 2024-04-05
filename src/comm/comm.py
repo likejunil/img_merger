@@ -8,7 +8,6 @@ from time import time
 from uuid import uuid4
 
 import fcntl
-
 from conf.conf import config as conf
 
 

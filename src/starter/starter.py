@@ -9,6 +9,7 @@ from queue import Full
 from time import time
 
 import conf.constant as _
+from conf.config import config as conf
 from src.comm.comm import ready_cont, get_loop, cache_func
 from src.comm.db import get_connect, query_all, query_one, update
 from src.comm.help import get_zip_path, get_pdf_path, make_zip_files
@@ -26,14 +27,18 @@ def get_my_info(hostname):
         # 서버의 상태
         'status': _.standby,
         # 작업 대상
-        'task': '',
+        'newlb': '',
     }
 
+    # ENGINE_SERVER 테이블에 존재하는 NEWLB 컬럼은 디폴트 작업 대상
+    # 해당 프로그램을 실행시킬 때 인자로 주어지는 정보가 우선순위 높음
+    # 아무런 인자도 주어지지 않으면 모든 작업을 대상으로 함
     sql, cols = get_sql_server_info(hostname)
     if server := query_one(sql):
         ret_dict['name'] = server[cols.server_name]
         ret_dict['status'] = server[cols.status]
-        ret_dict['task'] = server[cols.newlb].strip() if server[cols.newlb] else ''
+        newlb = conf.newlb if conf.newlb else (server[cols.newlb].strip() if server[cols.newlb] else '')
+        ret_dict['newlb'] = newlb
 
     return ret_dict
 
@@ -44,10 +49,7 @@ def server_status():
     hostname = socket.gethostname()
     info = get_my_info(hostname)
     old_status = info["status"]
-    logging.info(f'호스트=|{hostname}| 상태=|{old_status}| 태스크=|{info["task"]}|')
-
-    def _get_info():
-        return info
+    logging.info(f'호스트=|{hostname}| 상태=|{old_status}| 태스크=|{info["newlb"]}|')
 
     def change():
         nonlocal info, old_status
@@ -58,9 +60,8 @@ def server_status():
                 old_status = status
 
     def get_info():
-        _info = _get_info()
-        if _info['status'] == _.active:
-            return _info
+        if info['status'] == _.active:
+            return info
 
     return change, get_info
 
@@ -74,8 +75,9 @@ async def get_lpas_group():
         if not (info := get_info()):
             await aio.sleep(1)
             continue
+        info = info if info else {}
         name = info['name']
-        task = info['task']
+        newlb = info['newlb']
 
         # g 테이블로부터 작업 시작
         # g 테이블에 해당 서버에게 맡겨진 작업이 있는지 확인
@@ -88,7 +90,7 @@ async def get_lpas_group():
 
         # g 테이블에 해당 서버에게 맡길 작업이 없다면..
         # 주인 없는 작업을 찾아서 해당 서버에게 할당
-        update(get_upd_lpas_group(name, task))
+        update(get_upd_lpas_group(name, newlb))
         await aio.sleep(1)
 
 
@@ -208,6 +210,7 @@ async def update_result(period=1):
         await aio.sleep(period)
         if not (info := get_info()):
             continue
+        info = info if info else {}
         if info['status'] != _.active:
             continue
 
@@ -215,7 +218,8 @@ async def update_result(period=1):
         # LPAS_ORDER_G 로부터 작업 조회
         ###################################
         name = info['name']
-        sql, g_cols = get_sql_lpas_group(name, None, get_state_group_run())
+        newlb = info['newlb']
+        sql, g_cols = get_sql_lpas_group(name, newlb, get_state_group_run())
         if not (g := query_one(sql)):
             continue
         mandt = g[g_cols.mandt]

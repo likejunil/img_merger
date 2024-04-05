@@ -4,11 +4,11 @@ import logging
 import os
 import pprint
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from datetime import datetime as dt
 from io import FileIO
 from multiprocessing import Queue
 from queue import Empty
-from time import sleep
-from time import time
+from time import sleep, time
 
 import fitz
 from PyPDF2 import PdfFileReader, PdfFileWriter
@@ -60,7 +60,7 @@ async def delete_files(src_list, key):
                 pass
 
         except Exception as e:
-            logging.error(f'예외 발생=|{e}|')
+            logging.error(f'파일 삭제 예외 발생=|{e}|, {src["target"]} {src["resized"]}')
 
     # in 디렉토리
     pattern = os.path.join(conf.root_path, conf.in_path, '**', f'{key}*')
@@ -350,6 +350,7 @@ async def task_proc(task):
 
     except Exception as e:
         logging.error(f'예외 발생=|{e}|')
+        await delete_files(src_list, key)
         return False
 
 
@@ -371,18 +372,31 @@ def thread_proc(*args):
 
 
 async def main_proc(rq):
-    with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
-        ok = ready_cont()[2]
-        while ok():
-            try:
-                task = rq.get_nowait()
-                executor.submit(thread_proc, task)
-                continue
-            except Empty:
-                logging.debug(f'큐가 비었음')
-            except Exception as e:
-                logging.error(e)
-            await aio.sleep(0.1)
+    end_time = dt.strptime('235959', '%H%M%S').time()
+
+    async def f():
+        with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
+            while ok():
+                try:
+                    task = rq.get_nowait()
+                    executor.submit(thread_proc, task)
+                    continue
+                except Empty:
+                    logging.debug(f'큐가 비었음')
+                except Exception as e:
+                    logging.error(e)
+
+                # 23시 59분 59초에 종료
+                # 프로세스 풀을 초기화
+                # 로그 다시 지정
+                if dt.now().time() > end_time:
+                    break
+                await aio.sleep(0.1)
+
+    ok = ready_cont()[2]
+    while ok():
+        await f()
+        await aio.sleep(7)
 
     return 'ok'
 

@@ -170,12 +170,12 @@ def manage_logfile():
 async def initialize_log():
     changed_flag = False
     t1 = datetime.strptime("0000", "%M%S").time()
-    t2 = datetime.strptime("1000", "%M%S").time()
-    t3 = datetime.strptime("2000", "%M%S").time()
+    t2 = datetime.strptime("0005", "%M%S").time()
+    t3 = datetime.strptime("0010", "%M%S").time()
 
     ok = ready_cont()[2]
     while ok():
-        await aio.sleep(10)
+        await aio.sleep(1)
         if not changed_flag:
             if t1 <= datetime.now().time() < t2:
                 init_log(get_log_level(), None, change=True)

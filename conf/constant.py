@@ -1,6 +1,6 @@
-# -------------------
+####################
 # .env
-# -------------------
+####################
 root_path = 'root_path'
 conf_path = 'conf_path'
 src_path = 'src_path'
@@ -12,10 +12,9 @@ lib_path = 'lib_path'
 bin_path = 'bin_path'
 yaml_file = 'yaml_file'
 
-# -------------------
+####################
 # yaml
-# -------------------
-# comm
+####################
 comm = 'commom'
 
 # log
@@ -62,23 +61,24 @@ bar_addr = 'bar_addr'
 bar_port = 'bar_port'
 bar_url = 'bar_url'
 
-# -------------------
+####################
 # ext
-# -------------------
+####################
 pdf = '.pdf'
 png = '.png'
 eps = '.eps'
 svg = '.svg'
 
-# -------------------
+####################
 # os_name
-# -------------------
+####################
 os_window = "Windows OS"
 os_linux = "Linux OS"
 os_mac = "Mac OS"
 
-# -------------------
-#
-# -------------------
+####################
+# etc
+####################
+newlb = 'newlb'
 active = 'ACTIVE'
 standby = 'STANDBY'

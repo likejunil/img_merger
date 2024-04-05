@@ -178,7 +178,7 @@ def get_sql_lpas_group(name=None, newlb=None, zimgc=None):
     cols_sql, cols_tpl = get_sql_and_nt(col_list)
     zimgc_sql = f" AND ZIMGC = '{zimgc}' " if zimgc else f" AND (TRIM(ZIMGC) IS NULL OR TRIM(ZIMGC) = '{get_state_group_init()}') "
     server_sql = f" AND SERVER = '{name}' " if name else ""
-    newlb_sql = f" AND NEWLB = '{newlb}' " if newlb else ""
+    newlb_sql = f" AND (NEWLB = '{newlb}' OR TRIM(NEWLB) IS NULL) " if newlb else ""
     sql = \
         f" SELECT {cols_sql} " \
         f" FROM LPAS_ORDER_G " \
