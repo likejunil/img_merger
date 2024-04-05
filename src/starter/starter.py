@@ -37,7 +37,7 @@ def get_my_info(hostname):
     if server := query_one(sql):
         ret_dict['name'] = server[cols.server_name]
         ret_dict['status'] = server[cols.status]
-        newlb = conf.newlb if conf.newlb else (server[cols.newlb].strip() if server[cols.newlb] else '')
+        newlb = conf.task if conf.task else (server[cols.newlb].strip() if server[cols.newlb] else '')
         ret_dict['newlb'] = newlb
 
     return ret_dict
@@ -81,12 +81,14 @@ async def get_lpas_group():
 
         # g 테이블로부터 작업 시작
         # g 테이블에 해당 서버에게 맡겨진 작업이 있는지 확인
-        sql, cols = get_sql_lpas_group(name)
-        if g := query_one(sql):
-            # 해당 작업을 진행하겠다고 표시
-            update(get_upd_run_lpas_group(g[cols.mandt], g[cols.ebeln], g[cols.vbeln]))
-            logging.debug(f'G 읽음=|{g}|')
-            return g, cols
+        # newlb 가 지정된 경우, 해당 newlb 부터 검색
+        if newlb:
+            sql, cols = get_sql_lpas_group(name, newlb)
+            if g := query_one(sql):
+                # 해당 작업을 진행하겠다고 표시
+                update(get_upd_run_lpas_group(g[cols.mandt], g[cols.ebeln], g[cols.vbeln]))
+                logging.info(f'G 읽음({newlb} 지정)=|{g}|')
+                return g, cols
 
         # g 테이블에 해당 서버에게 맡길 작업이 없다면..
         # 주인 없는 작업을 찾아서 해당 서버에게 할당

@@ -61,6 +61,9 @@ def init_log(level=logging.INFO, name=None, change=False, middle=''):
     if not name:
         name = current_process().name
 
+    if not middle:
+        middle = conf.task if conf.task else ''
+
     """
     fmt = f'%(asctime)s - ' \
           f'[{name}:{os.getpid()}] - ' \
@@ -152,7 +155,8 @@ def manage_logfile():
             return False, ''
 
     logging.info(f'로그 파일 정리 시작')
-    for file in os.listdir(conf.log_path):
+    log_path = os.path.join(conf.log_path, conf.task)
+    for file in os.listdir(log_path):
         # 로그 디렉토리의 파일들을 필터링한다.
         abs_file = os.path.join(conf.log_path, file)
         logging.info(f'대상 파일 =|{abs_file}|')

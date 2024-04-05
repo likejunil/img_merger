@@ -70,11 +70,11 @@ def ready_conf():
     conf_dict[_.bar_port] = converter[_.bar_port]
     conf_dict[_.bar_url] = converter[_.bar_url]
 
-    # 작업(newlb) 지시
-    conf_dict[_.newlb] = ''
+    # 작업(task) 지시
+    conf_dict[_.task] = ''
     if (n := len(sys.argv)) > 1:
-        newlb = sys.argv[n - 1]
-        conf_dict[_.newlb] = newlb
+        task = sys.argv[n - 1]
+        conf_dict[_.task] = task
 
     # -----------------------
     # namedtuple 로 변환하여 반환

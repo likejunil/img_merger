@@ -79,6 +79,6 @@ os_mac = "Mac OS"
 ####################
 # etc
 ####################
-newlb = 'newlb'
+task = 'task'
 active = 'ACTIVE'
 standby = 'STANDBY'
