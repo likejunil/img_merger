@@ -3,7 +3,7 @@ import os
 import zipfile
 from datetime import datetime as dt
 
-from conf.conf import config as conf
+from conf.config import config as conf
 
 
 def get_zip_path(date_str=None):

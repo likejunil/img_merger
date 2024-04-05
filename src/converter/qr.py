@@ -8,7 +8,7 @@ from reportlab.graphics import renderPDF
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 
-from conf.conf import config as conf
+from conf.config import config as conf
 from conf.constant import pdf, svg, png
 from src.comm.log import console_log
 from src.comm.util import exec_command, req_post

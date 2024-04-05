@@ -15,7 +15,7 @@ from PyPDF2 import PdfFileReader, PdfFileWriter
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 
-from conf.conf import config as conf
+from conf.config import config as conf
 from src.comm.comm import ready_cont, get_loop, cache_func
 from src.comm.db import update
 from src.comm.log import initialize_log, console_log

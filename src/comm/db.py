@@ -3,7 +3,7 @@ from time import sleep
 
 import cx_Oracle
 
-from conf.conf import config as conf
+from conf.config import config as conf
 from src.comm.comm import cache_func
 
 

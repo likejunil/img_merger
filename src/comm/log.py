@@ -7,7 +7,7 @@ from datetime import datetime
 from logging.handlers import TimedRotatingFileHandler
 from multiprocessing import current_process
 
-from conf.conf import config as conf
+from conf.config import config as conf
 from src.comm.comm import ready_cont
 
 log_level = logging.DEBUG if conf.debug else logging.INFO

@@ -9,7 +9,7 @@ from time import sleep
 
 import schedule
 
-from conf.conf import config as conf
+from conf.config import config as conf
 from src.comm.comm import ready_cont, get_loop, cache_func
 from src.comm.log import init_log, get_log_level, manage_logfile
 from src.converter.converter import converter_proc

@@ -11,7 +11,7 @@ from queue import Full, Empty
 from shutil import copyfile
 from uuid import uuid4
 
-from conf.conf import config as conf
+from conf.config import config as conf
 from conf.constant import pdf
 from src.comm.comm import ready_cont, get_loop, ready_queue, tm
 from src.comm.db import update

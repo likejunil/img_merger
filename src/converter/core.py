@@ -6,7 +6,7 @@ from uuid import uuid4
 from PyPDF2 import PdfFileReader, PdfFileWriter
 from reportlab.lib.units import mm
 
-from conf.conf import config as conf
+from conf.config import config as conf
 from conf.constant import pdf
 from src.comm.util import exec_command
 

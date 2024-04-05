@@ -6,7 +6,7 @@ from time import time
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
-from conf.conf import config as conf
+from conf.config import config as conf
 
 
 class Watcher(FileSystemEventHandler):

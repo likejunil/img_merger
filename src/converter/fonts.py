@@ -1,7 +1,7 @@
 import logging
 import os
 
-from conf.conf import config as conf
+from conf.config import config as conf
 
 
 def _register_fonts():

@@ -25,7 +25,7 @@ def req_post(url, req):
 
 
 def test():
-    from conf.conf import config as conf
+    from conf.config import config as conf
     url = f'{conf.bar_addr}:{conf.bar_port}{conf.bar_url}'
     # url = 'http://localhost:33456/barcode'
     req_upc = {
