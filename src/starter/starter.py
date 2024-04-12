@@ -175,7 +175,7 @@ async def next_job():
             if not ret:
                 # 웹에서 관리자가 직접 다시 초기화를 해줘야..
                 # 다시 웹라벨 생성 및 압축 파일을 만들 수 있음
-                update(get_upd_run_lpas_group(mandt, ebeln, vbeln))
+                update(get_upd_err_lpas_group(mandt, ebeln, vbeln))
                 logging.error(f'G 실패 기록 mandt=|{mandt}| ebeln=|{ebeln}| vbeln=|{vbeln}|')
 
         except Exception as e:
