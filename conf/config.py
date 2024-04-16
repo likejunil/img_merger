@@ -71,6 +71,7 @@ def ready_conf():
     conf_dict[_.bar_url] = converter[_.bar_url]
 
     # 작업(task) 지시
+    # 인자가 주어졌을 경우 마지막 인자가 작업 지정
     conf_dict[_.task] = ''
     if (n := len(sys.argv)) > 1:
         task = sys.argv[n - 1]

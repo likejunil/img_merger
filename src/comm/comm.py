@@ -1,5 +1,6 @@
 import asyncio as aio
 import logging
+import os
 import sys
 from datetime import datetime as dt
 from queue import Full, Empty
@@ -131,7 +132,6 @@ def tm(t=None):
 
 def lock_run(proc_name=""):
     pid_file = f'.lock_{proc_name}.pid'
-    import os
     lock_file = os.path.join(conf.pid_path, pid_file)
 
     try:
@@ -152,7 +152,6 @@ def lock_run(proc_name=""):
               f'  **************************************\n' \
               f'      이미 프로세스가 실행 중입니다.\n' \
               f'  **************************************\n'
-        logging.error(msg)
         if not sys.stdout.closed:
             print(msg)
         # sys.exit(-1)

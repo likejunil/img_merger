@@ -222,6 +222,10 @@ async def update_result(period=1):
         name = info['name']
         newlb = info['newlb']
         sql, g_cols = get_sql_lpas_group(name, newlb, get_state_group_run())
+
+        # todo 2024.0415 by june1
+        #  - G 테이블에 대한 조회를 1건만 하면 지정된 해당 작업이 전체 작업을 block 시킬 가능성이 있다.
+        #  - 그렇다면 n 건을 한 번에 조회해서 차례대로 진행해야 할까?
         if not (g := query_one(sql)):
             continue
         mandt = g[g_cols.mandt]
@@ -259,6 +263,8 @@ async def update_result(period=1):
             make_zip(mandt, ebeln, lbpodat)
             ret = get_state_group_yes()
 
+        # 분명하게 성공하거나 실패한 경우에만..
+        # LPAS_ORDER_G 의 GIMGC 를 갱신
         if ret in (get_state_group_err(), get_state_group_yes()):
             update(get_upd_lpas_group_ret(mandt, ebeln, vbeln, ret))
             logging.info(f'G 갱신, mandt=|{mandt}| ebeln=|{ebeln}| vbeln=|{vbeln}| zimgc=|{ret}|')
