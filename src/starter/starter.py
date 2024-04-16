@@ -17,7 +17,7 @@ from src.comm.log import console_log, initialize_log
 from src.comm.query import get_sql_lpas_group, get_sql_server_info, get_upd_lpas_group, get_sql_lpas_headers, \
     get_sql_lpas_items, get_upd_lpas_group_ret, get_upd_run_lpas_group, get_state_group_run, get_state_group_yes, \
     get_upd_err_lpas_group, get_col_lpas_items, get_state_header_yes, get_state_item_yes, get_state_header_init, \
-    get_state_group_err
+    get_state_group_err, get_upd_lpas_header_ret
 
 
 def get_my_info(hostname):
@@ -150,6 +150,7 @@ async def next_job():
                 i_list, i_cols = get_lpas_items(mandt, ebeln, vbeln, posnr, matnr)
                 if i_cnt != len(i_list):
                     logging.error(f'H 정보와 I 개수가 불일치 |{i_cnt}| != |{len(i_list)}|')
+                    update(get_upd_lpas_header_ret(mandt, ebeln, vbeln, posnr, matnr, zimgc='NE'))
                     ret = False
                     break
 

@@ -16,7 +16,7 @@ from conf.constant import pdf
 from src.comm.comm import ready_cont, get_loop, ready_queue, tm
 from src.comm.db import update
 from src.comm.log import console_log, initialize_log
-from src.comm.query import get_upd_err_lpas_header
+from src.comm.query import get_upd_err_lpas_header, get_upd_lpas_header_ret
 from src.converter.core import change_ext
 from src.converter.fonts import register_fonts
 from src.converter.image import conv_jpg, conv_png, conv_eps, conv_pdf
@@ -48,7 +48,7 @@ def convert(filename):
             return
 
     except Exception as e:
-        logging.error(f'이미지 로드 실패 =|{e}|')
+        logging.error(f'이미지 로드 실패, 파일=|{filename}| 메시지=|{e}|')
 
 
 async def do_convert(watcher):
@@ -138,6 +138,7 @@ async def run_converter(send_q, recv_q, jq):
 
                     except FileNotFoundError as e:
                         logging.error(f'원본 파일 없음(i)=|{e}| 파일=|{src}|')
+                        update(get_upd_lpas_header_ret(mandt, ebeln, vbeln, posnr, matnr, zimgc='NI'))
                     except PermissionError as e:
                         logging.error(f'파일 접근 권한 부족(i)=|{e}| 파일=|{src}| ')
                     except IOError as e:
@@ -161,6 +162,7 @@ async def run_converter(send_q, recv_q, jq):
 
                     except FileNotFoundError as e:
                         logging.error(f'원본 파일 없음(t)=|{e}|')
+                        update(get_upd_lpas_header_ret(mandt, ebeln, vbeln, posnr, matnr, zimgc='NT'))
                     except IOError as e:
                         logging.error(f'파일 입출력 오류 발생(t)=|{e}|')
                     except ValueError as e:
@@ -190,6 +192,7 @@ async def run_converter(send_q, recv_q, jq):
 
                     except IOError as e:
                         logging.error(f'파일 입출력 오류 발생=|{e}|')
+                        update(get_upd_lpas_header_ret(mandt, ebeln, vbeln, posnr, matnr, zimgc='NI'))
                     except Exception as e:
                         logging.error(f'바코드 정보 파일 생성 실패=|{e}|')
                     fail_flag = True
